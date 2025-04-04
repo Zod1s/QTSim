@@ -1,29 +1,32 @@
 use crate::utils::*;
 use crate::wiener::Wiener;
+use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use itertools::Itertools;
 use nalgebra as na;
 
-pub struct Solver<const T: usize> {
+pub struct Solver<'a> {
     wiener: Wiener,
-    state: State<T>,
-    h: Operator<T>,
-    hi: Operator<T>,
-    ls: Vec<Operator<T>>,
-    etas: Vec<f64>,
+    state: &'a State,
+    h: &'a Operator,
+    hi: Operator,
+    ls: &'a Vec<Operator>,
+    etas: &'a Vec<f64>,
     sqrtetas: Vec<f64>,
     size: usize,
     dt: f64,
 }
 
-impl<const T: usize> Solver<T> {
+impl<'a> Solver<'a> {
     pub fn new(
-        init_state: State<T>,
-        h: Operator<T>,
-        ls: Vec<Operator<T>>,
-        etas: Vec<f64>,
+        init_state: &'a State,
+        h: &'a Operator,
+        ls: &'a Vec<Operator>,
+        etas: &'a Vec<f64>,
         dt: f64,
     ) -> Result<Self, Error> {
-        let hi = &h * na::Complex::I;
+        let state_shape = init_state.shape();
+        let h_shape = h.shape();
+        let hi = h * na::Complex::I;
 
         if dt <= 0. {
             return Err(Error::NotPositiveDt(dt));
@@ -39,8 +42,10 @@ impl<const T: usize> Solver<T> {
             return Err(Error::NoiseEfficiencyMismatch(etas.len(), ls.len()));
         }
 
-        check_hermiticity(&h)?;
-        check_state(&init_state)?;
+        // check dimensions
+
+        check_hermiticity(h)?;
+        check_state(init_state)?;
 
         Ok(Self {
             wiener: Wiener::new(),
@@ -50,31 +55,35 @@ impl<const T: usize> Solver<T> {
             ls,
             sqrtetas: etas.iter().map(|x| x.sqrt()).collect(),
             etas,
-            size: T,
+            size: state_shape.0,
             dt,
         })
     }
 
-    fn step(&mut self, state: &State<T>) -> State<T> {
+    fn step(&mut self, state: &State) -> State {
         let id = na::DMatrix::identity(self.size, self.size);
+
         let fst = (&self.hi
             + self
                 .ls
                 .iter()
                 .map(|l| l.adjoint() * l.scale(0.5))
-                .sum::<Operator<T>>())
+                .sum::<Operator>())
         .scale(self.dt);
+
         let leta = self
             .ls
             .iter()
             .zip(&self.sqrtetas)
             .map(|(l, sqrteta)| l.scale(*sqrteta));
+
         let w = self.wiener.sample_vector(self.dt, self.ls.len());
         let letaw = leta.zip(w);
         let snd = letaw
             .clone()
             .map(|(l, w)| &l * ((&l * state + state * &l.adjoint()).trace() * self.dt + w))
-            .sum::<Operator<T>>();
+            .sum::<Operator>();
+
         let letawr = letaw.zip(0..self.ls.len());
         let thd = letawr
             .clone()
@@ -82,19 +91,22 @@ impl<const T: usize> Solver<T> {
             .map(|(((letar, wr), r), ((letas, ws), s))| {
                 letar * letas.scale(0.5 * (wr * ws - delta(&r, &s) * self.dt))
             })
-            .sum::<Operator<T>>();
+            .sum::<Operator>();
+
         let mn = id - fst + snd + thd;
 
         let num = &mn * state * &mn.adjoint()
             + self
                 .ls
                 .iter()
-                .map(|l| l * state * l.adjoint().scale(self.dt))
-                .sum::<Operator<T>>();
+                // mancano le efficienze
+                .zip(self.etas)
+                .map(|(l, eta)| l * state * l.adjoint().scale(self.dt * (1. - eta)))
+                .sum::<Operator>();
         num.scale(1. / num.trace().re)
     }
 
-    pub fn trajectory(&mut self, final_time: f64) -> Result<Vec<State<T>>, Error> {
+    pub fn trajectory(&mut self, final_time: f64) -> Result<Vec<State>, Error> {
         if final_time <= 0. {
             return Err(Error::NegativeFinalTime);
         }
@@ -102,9 +114,18 @@ impl<const T: usize> Solver<T> {
         let mut states = Vec::with_capacity(n_samples);
         states.push(self.state.clone());
 
+        // let bar = ProgressBar::new((n_samples - 1) as u64).with_style(
+        //     ProgressStyle::default_bar()
+        //         .template("Sample: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+        //         .unwrap(),
+        // );
+
         for i in 1..n_samples {
+            // bar.inc(1);
             states.push(self.step(&states[i - 1]))
         }
+
+        // bar.finish();
 
         Ok(states)
     }

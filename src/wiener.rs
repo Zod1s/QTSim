@@ -16,7 +16,7 @@ impl Wiener {
     }
 
     pub fn sample_increment(&mut self, dt: f64) -> f64 {
-        self.distr.sample(&mut self.rng) * dt
+        self.distr.sample(&mut self.rng) * dt.sqrt()
     }
 
     pub fn sample_vector(&mut self, dt: f64, n: usize) -> Vec<f64> {

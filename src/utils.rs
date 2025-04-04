@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 pub use nalgebra as na;
 use nalgebra::ToTypenum;
 use std::{
@@ -7,29 +8,29 @@ use std::{
 
 type TMul<T> = <T as Mul>::Output;
 
-pub type State<const T: usize> = na::SMatrix<na::Complex<f64>, T, T>;
-pub type Operator<const T: usize> = na::SMatrix<na::Complex<f64>, T, T>;
+pub type State = na::DMatrix<na::Complex<f64>>;
+pub type Operator = na::DMatrix<na::Complex<f64>>;
 
-pub const PAULI_X: Operator<2> = na::Matrix2::new(
-    na::Complex::ZERO,
-    na::Complex::ONE,
-    na::Complex::ONE,
-    na::Complex::ZERO,
-);
-
-pub const PAULI_Y: Operator<2> = na::Matrix2::new(
-    na::Complex::ZERO,
-    na::Complex::new(0., -1.),
-    na::Complex::ONE,
-    na::Complex::I,
-);
-
-pub const PAULI_Z: Operator<2> = na::Matrix2::new(
-    na::Complex::ONE,
-    na::Complex::ZERO,
-    na::Complex::ZERO,
-    na::Complex::new(-1., 0.),
-);
+lazy_static! {
+    pub static ref PAULI_X: na::DMatrix<na::Complex<f64>> = na::dmatrix![
+        na::Complex::ZERO,
+        na::Complex::ONE;
+        na::Complex::ONE,
+        na::Complex::ZERO
+    ];
+    pub static ref PAULI_Y: na::DMatrix<na::Complex<f64>> = na::dmatrix![
+        na::Complex::ZERO,
+        na::Complex::new(0., -1.);
+        na::Complex::ONE,
+        na::Complex::I
+    ];
+    pub static ref PAULI_Z: na::DMatrix<na::Complex<f64>> = na::dmatrix![
+        na::Complex::ONE,
+        na::Complex::ZERO;
+        na::Complex::ZERO,
+        na::Complex::new(-1., 0.)
+    ];
+}
 
 pub fn commutator<'c, T>(a: &'c T, b: &'c T) -> <TMul<&'c T> as Sub>::Output
 where
@@ -97,7 +98,7 @@ impl Display for Error {
     }
 }
 
-pub fn check_hermiticity<const T: usize>(op: &Operator<T>) -> Result<(), Error> {
+pub fn check_hermiticity(op: &Operator) -> Result<(), Error> {
     if op == &op.adjoint() {
         Ok(())
     } else {
@@ -105,16 +106,16 @@ pub fn check_hermiticity<const T: usize>(op: &Operator<T>) -> Result<(), Error> 
     }
 }
 
-pub fn check_positivity<const T: usize>(op: &Operator<T>) -> Result<(), Error> {
+pub fn check_positivity(op: &Operator) -> Result<(), Error> {
     check_hermiticity(op)?;
-    if op.symmetric_eigen().eigenvalues.iter().all(|&e| e >= 0.) {
+    if op.symmetric_eigenvalues().iter().all(|&e| e >= 0.) {
         Ok(())
     } else {
         Err(Error::NotPositiveSemidefinite)
     }
 }
 
-pub fn check_state<const T: usize>(state: &State<T>) -> Result<(), Error> {
+pub fn check_state(state: &State) -> Result<(), Error> {
     // if we know that the operator is positive semidefinite, surely the diagonal
     // is real, otherwise it would not be hermitian
     check_positivity(state)?;
