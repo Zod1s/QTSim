@@ -78,7 +78,7 @@ impl<'a> Solver<'a> {
             .map(|(l, sqrteta)| l.scale(*sqrteta));
 
         let w = self.wiener.sample_vector(self.dt, self.ls.len());
-        let letaw = leta.zip(w);
+        let letaw = leta.zip(w.clone());
         let snd = letaw
             .clone()
             .map(|(l, w)| &l * ((&l * state + state * &l.adjoint()).trace() * self.dt + w))
@@ -99,11 +99,23 @@ impl<'a> Solver<'a> {
             + self
                 .ls
                 .iter()
-                // mancano le efficienze
                 .zip(self.etas)
                 .map(|(l, eta)| l * state * l.adjoint().scale(self.dt * (1. - eta)))
                 .sum::<Operator>();
+
         num.scale(1. / num.trace().re)
+
+        // let y = self
+        //     .ls
+        //     .iter()
+        //     .zip(&self.sqrtetas)
+        //     .zip(w)
+        //     .map(|((l, sqrteta), w)| {
+        //         (l * &new_state + &new_state * l.adjoint()).trace().re * sqrteta * self.dt + w
+        //     })
+        //     .collect::<Vec<f64>>();
+        //
+        // (new_state, y)
     }
 
     pub fn trajectory(&mut self, final_time: f64) -> Result<Vec<State>, Error> {

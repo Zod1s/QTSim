@@ -27,7 +27,7 @@ fn main() -> Result<(), Error> {
     let eta2 = 0.85;
     let etas = vec![eta1, eta2];
 
-    let n_avg = 100;
+    let n_avg = 10;
 
     let h = (PAULI_X.kronecker(&na::DMatrix::identity(2, 2))
         + na::DMatrix::identity(2, 2).kronecker(&PAULI_X))
@@ -59,8 +59,8 @@ fn main() -> Result<(), Error> {
 
     let mut figure_config = FigureConfig::default();
     figure_config.set_font_paths(
-        "/home/lore/.local/share/fonts/CaskaydiaCoveNerdFontPropo-Regular.ttf".to_owned(),
-        "/home/lore/.local/share/fonts/CaskaydiaCoveNerdFontPropo-Regular.ttf".to_owned(),
+        "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf".to_owned(),
+        "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf".to_owned(),
     );
     let mut pixel_canvas = PixelCanvas::new(800, 600, [255, 255, 255], 80);
 
