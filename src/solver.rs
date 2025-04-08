@@ -5,15 +5,15 @@ use itertools::Itertools;
 use nalgebra as na;
 
 pub struct Solver<'a> {
-    wiener: Wiener,
-    state: &'a State,
-    h: &'a Operator,
-    hi: Operator,
-    ls: &'a Vec<Operator>,
-    etas: &'a Vec<f64>,
-    sqrtetas: Vec<f64>,
-    size: usize,
-    dt: f64,
+    pub wiener: Wiener,
+    pub state: &'a State,
+    pub h: &'a Operator,
+    pub hi: Operator,
+    pub ls: &'a Vec<Operator>,
+    pub etas: &'a Vec<f64>,
+    pub sqrtetas: Vec<f64>,
+    pub size: usize,
+    pub dt: f64,
 }
 
 impl<'a> Solver<'a> {
@@ -23,23 +23,23 @@ impl<'a> Solver<'a> {
         ls: &'a Vec<Operator>,
         etas: &'a Vec<f64>,
         dt: f64,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, SolverError> {
         let state_shape = init_state.shape();
         let h_shape = h.shape();
         let hi = h * na::Complex::I;
 
         if dt <= 0. {
-            return Err(Error::NotPositiveDt(dt));
+            return Err(SolverError::NotPositiveDt(dt));
         }
 
         for eta in etas.iter() {
             if *eta < 0. || *eta > 1. {
-                return Err(Error::InvalidEfficiency(*eta));
+                return Err(SolverError::InvalidEfficiency(*eta));
             }
         }
 
         if etas.len() != ls.len() {
-            return Err(Error::NoiseEfficiencyMismatch(etas.len(), ls.len()));
+            return Err(SolverError::NoiseEfficiencyMismatch(etas.len(), ls.len()));
         }
 
         // check dimensions
@@ -60,7 +60,7 @@ impl<'a> Solver<'a> {
         })
     }
 
-    fn step(&mut self, state: &State) -> State {
+    fn step(&mut self, state: &State) -> (State, Vec<f64>) {
         let id = na::DMatrix::identity(self.size, self.size);
 
         let fst = (&self.hi
@@ -103,42 +103,42 @@ impl<'a> Solver<'a> {
                 .map(|(l, eta)| l * state * l.adjoint().scale(self.dt * (1. - eta)))
                 .sum::<Operator>();
 
-        num.scale(1. / num.trace().re)
-
-        // let y = self
-        //     .ls
-        //     .iter()
-        //     .zip(&self.sqrtetas)
-        //     .zip(w)
-        //     .map(|((l, sqrteta), w)| {
-        //         (l * &new_state + &new_state * l.adjoint()).trace().re * sqrteta * self.dt + w
-        //     })
-        //     .collect::<Vec<f64>>();
-        //
-        // (new_state, y)
+        (num.scale(1. / num.trace().re), self.measurement(state, w))
     }
 
-    pub fn trajectory(&mut self, final_time: f64) -> Result<Vec<State>, Error> {
+    fn measurement(&self, state: &State, wieners: Vec<f64>) -> Vec<f64> {
+        self.ls
+            .iter()
+            .zip(&self.sqrtetas)
+            .zip(wieners)
+            .map(|((l, sqrteta), w)| {
+                (l * state + state * l.adjoint()).trace().re * sqrteta * self.dt + w
+            })
+            .collect::<Vec<f64>>()
+    }
+
+    pub fn trajectory(
+        &mut self,
+        final_time: f64,
+    ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
         if final_time <= 0. {
-            return Err(Error::NegativeFinalTime);
+            return Err(SolverError::NegativeFinalTime);
         }
         let n_samples = (final_time / self.dt).floor() as usize;
+        let mut measurements = Vec::with_capacity(n_samples);
         let mut states = Vec::with_capacity(n_samples);
         states.push(self.state.clone());
 
-        // let bar = ProgressBar::new((n_samples - 1) as u64).with_style(
-        //     ProgressStyle::default_bar()
-        //         .template("Sample: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-        //         .unwrap(),
-        // );
-
         for i in 1..n_samples {
-            // bar.inc(1);
-            states.push(self.step(&states[i - 1]))
+            let (state, measurement) = self.step(&states[i - 1]);
+            states.push(state);
+            measurements.push(measurement);
         }
 
-        // bar.finish();
+        // we add the measurement of the last state
+        let noises = self.wiener.sample_vector(self.dt, self.ls.len());
+        measurements.push(self.measurement(&states[states.len() - 1], noises));
 
-        Ok(states)
+        Ok((states, measurements))
     }
 }

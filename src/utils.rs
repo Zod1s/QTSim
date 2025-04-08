@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 pub use nalgebra as na;
 use nalgebra::ToTypenum;
+use plotters::prelude::DrawingAreaErrorKind;
 use std::{
     fmt::Display,
     ops::{Add, Mul, Sub},
@@ -56,7 +57,7 @@ pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
 }
 
 #[derive(Copy, Clone, Debug)]
-pub enum Error {
+pub enum SolverError {
     ShapeError((usize, usize), (usize, usize)),
     NotSquareError(usize, usize),
     NotPositiveDt(f64),
@@ -68,60 +69,69 @@ pub enum Error {
     IncompatibleNoiseShapes,
     NotSquareNoises,
     NoiseEfficiencyMismatch(usize, usize),
+    PlotError,
 }
 
-impl Display for Error {
+impl Display for SolverError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Error::ShapeError(shape1, shape2) => {
+            SolverError::ShapeError(shape1, shape2) => {
                 write!(
                     f,
                     "Error, shapes {:?} and {:?} do not match",
                     shape1, shape2
                 )
             }
-            Error::NotSquareError(rows, cols) => write!(
+            SolverError::NotSquareError(rows, cols) => write!(
                 f,
                 "Error, the given matrix is not square, with {} rows and {} cols",
                 rows, cols
             ),
-            Error::NotPositiveDt(dt) => write!(f, "Error, the given time step {} is not positive", dt),
-            Error::InvalidEfficiency(eta) => write!(f, "Error, the given measurement efficiency {} is not valid since it is not in the interval [0, 1]",eta),
-            Error::NotHermitian => write!(f, "Error, the given matrix is not hermitian"),
-            Error::NotPositiveSemidefinite => write!(f, "Error, the given matrix is not positive semidefinite"),
-            Error::NotUnitaryTrace(trace) => write!(f, "Error, the given matrix has trace {}, which is different from 1", trace),
-            Error::NegativeFinalTime => write!(f, "Error, the final time of the simulation cannot be negative"),
-            Error::IncompatibleNoiseShapes => write!(f, "Error, the noise operators have incompatible noise shapes"),
-            Error::NotSquareNoises => write!(f, "Error, some of the noise operators are not square"),
-            Error::NoiseEfficiencyMismatch(etas, ls) => write!(f, "Error, the number of etas, {}, is different from the number of ls, {}", etas, ls),
+            SolverError::NotPositiveDt(dt) => write!(f, "Error, the given time step {} is not positive", dt),
+            SolverError::InvalidEfficiency(eta) => write!(f, "Error, the given measurement efficiency {} is not valid since it is not in the interval [0, 1]",eta),
+            SolverError::NotHermitian => write!(f, "Error, the given matrix is not hermitian"),
+            SolverError::NotPositiveSemidefinite => write!(f, "Error, the given matrix is not positive semidefinite"),
+            SolverError::NotUnitaryTrace(trace) => write!(f, "Error, the given matrix has trace {}, which is different from 1", trace),
+            SolverError::NegativeFinalTime => write!(f, "Error, the final time of the simulation cannot be negative"),
+            SolverError::IncompatibleNoiseShapes => write!(f, "Error, the noise operators have incompatible noise shapes"),
+            SolverError::NotSquareNoises => write!(f, "Error, some of the noise operators are not square"),
+            SolverError::NoiseEfficiencyMismatch(etas, ls) => write!(f, "Error, the number of etas, {}, is different from the number of ls, {}", etas, ls),
+            SolverError::PlotError => write!(f, "Error encountered while plotting"),
         }
     }
 }
 
-pub fn check_hermiticity(op: &Operator) -> Result<(), Error> {
-    if op == &op.adjoint() {
-        Ok(())
-    } else {
-        Err(Error::NotHermitian)
+impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
+    fn from(value: DrawingAreaErrorKind<E>) -> Self {
+        eprintln!("{}", value);
+        Self::PlotError
     }
 }
 
-pub fn check_positivity(op: &Operator) -> Result<(), Error> {
+pub fn check_hermiticity(op: &Operator) -> Result<(), SolverError> {
+    if op == &op.adjoint() {
+        Ok(())
+    } else {
+        Err(SolverError::NotHermitian)
+    }
+}
+
+pub fn check_positivity(op: &Operator) -> Result<(), SolverError> {
     check_hermiticity(op)?;
     if op.symmetric_eigenvalues().iter().all(|&e| e >= 0.) {
         Ok(())
     } else {
-        Err(Error::NotPositiveSemidefinite)
+        Err(SolverError::NotPositiveSemidefinite)
     }
 }
 
-pub fn check_state(state: &State) -> Result<(), Error> {
+pub fn check_state(state: &State) -> Result<(), SolverError> {
     // if we know that the operator is positive semidefinite, surely the diagonal
     // is real, otherwise it would not be hermitian
     check_positivity(state)?;
     if state.trace().re == 1. {
         Ok(())
     } else {
-        Err(Error::NotUnitaryTrace(state.trace().re))
+        Err(SolverError::NotUnitaryTrace(state.trace().re))
     }
 }
