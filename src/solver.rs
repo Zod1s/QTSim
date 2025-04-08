@@ -3,6 +3,7 @@ use crate::wiener::Wiener;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use itertools::Itertools;
 use nalgebra as na;
+use rayon::prelude::*;
 
 pub struct Solver<'a> {
     pub wiener: Wiener,
@@ -140,5 +141,13 @@ impl<'a> Solver<'a> {
         measurements.push(self.measurement(&states[states.len() - 1], noises));
 
         Ok((states, measurements))
+    }
+
+    pub fn parallel_trajectories(
+        &mut self,
+        final_time: f64,
+        par_instances: usize,
+    ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
+        panic!("")
     }
 }
