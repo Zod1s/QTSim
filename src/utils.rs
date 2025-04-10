@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 pub use nalgebra as na;
 use nalgebra::ToTypenum;
-use plotters::prelude::DrawingAreaErrorKind;
+// use plotters::prelude::DrawingAreaErrorKind;
 use std::{
     fmt::Display,
     ops::{Add, Mul, Sub},
@@ -70,6 +70,7 @@ pub enum SolverError {
     NotSquareNoises,
     NoiseEfficiencyMismatch(usize, usize),
     PlotError,
+    EmptyIterator,
 }
 
 impl Display for SolverError {
@@ -97,16 +98,17 @@ impl Display for SolverError {
             SolverError::NotSquareNoises => write!(f, "Error, some of the noise operators are not square"),
             SolverError::NoiseEfficiencyMismatch(etas, ls) => write!(f, "Error, the number of etas, {}, is different from the number of ls, {}", etas, ls),
             SolverError::PlotError => write!(f, "Error encountered while plotting"),
+            SolverError::EmptyIterator => write!(f, "Error, the iterator was empty"),
         }
     }
 }
 
-impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
-    fn from(value: DrawingAreaErrorKind<E>) -> Self {
-        eprintln!("{}", value);
-        Self::PlotError
-    }
-}
+// impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
+//     fn from(value: DrawingAreaErrorKind<E>) -> Self {
+//         eprintln!("{}", value);
+//         Self::PlotError
+//     }
+// }
 
 pub fn check_hermiticity(op: &Operator) -> Result<(), SolverError> {
     if op == &op.adjoint() {

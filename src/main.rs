@@ -1,22 +1,28 @@
 #![allow(unused)]
-// rendere Wiener un riferimento dietro ARC in modo da poter fare tutto in parallelo, così si
-// accelera molto quando devo fare la media
 
+mod plots;
 mod solver;
 mod utils;
 mod wiener;
 
 use std::f64::consts::PI;
 
-use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
-use plotters::prelude::*;
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator, ProgressStyle};
+use plotly::color::NamedColor;
+use rayon::prelude::*;
 
 use crate::solver::Solver;
 use crate::utils::*;
+use num_cpus;
 use std::process::Command;
 
 fn main() -> Result<(), SolverError> {
-    let omega = 100.; // angular frequency with which the Bloch vector rotates around the X-axis
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(6)
+        .build_global()
+        .unwrap();
+
+    let omega = 1.; // angular frequency with which the Bloch vector rotates around the X-axis
     let kappa = 0.01 * omega; // coupling between the Z-components of the Bloch vectors
     let kappa1 = 0.005 * omega;
     let kappa2 = kappa1;
@@ -60,11 +66,11 @@ fn main() -> Result<(), SolverError> {
 
     purity_graph(
         solvers,
-        vec![RED, GREEN],
+        vec![plots::NamedColor::Red, plots::NamedColor::Green],
         "",
         "Cycle",
         "Purity",
-        vec!["Pure state", "Completely mixed state"],
+        vec!["Pure state", "Mixed state"],
         final_time,
         n_avg,
         n_cycles,
@@ -74,7 +80,7 @@ fn main() -> Result<(), SolverError> {
 
 fn purity_graph(
     mut solvers: Vec<Solver>,
-    colors: Vec<RGBColor>,
+    colors: Vec<plots::NamedColor>,
     title: &str,
     xtitle: &str,
     ytitle: &str,
@@ -84,71 +90,104 @@ fn purity_graph(
     n_cycles: usize,
     filepath: &str,
 ) -> Result<(), utils::SolverError> {
-    let root = BitMapBackend::new(filepath, (800, 800)).into_drawing_area();
-    root.fill(&WHITE)?;
+    let options = plots::PlotOptions {
+        format: plots::Format::PNG,
+        width: 1200,
+        height: 800,
+        scale: 1.,
+    };
 
+    let mut plot = plots::Plot::new();
     let num_samples = (final_time / solvers[0].dt).floor() as usize;
-    let mut chart = ChartBuilder::on(&root)
-        .caption(title, ("sans-serif", 50).into_font())
-        .margin(5)
-        .x_label_area_size(30)
-        .y_label_area_size(30)
-        .build_cartesian_2d(0f64..n_cycles as f64, 0f64..1f64)?;
-
-    chart.configure_mesh().draw()?;
 
     for (i, sol) in solvers.iter_mut().enumerate() {
-        let mut purities = vec![0_f64; num_samples];
-
         let bar = ProgressBar::new(n_avg as u64).with_style(
             ProgressStyle::default_bar()
                 .template("Sample: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
                 .unwrap(),
         );
 
-        for _ in 0..n_avg {
-            let trajectory = sol.trajectory(final_time)?.0;
-            bar.inc(1);
-            purities = purities
-                .iter()
-                .zip(
-                    &trajectory
-                        .iter()
-                        .map(|rho| (rho * rho).trace().re)
-                        .collect::<Vec<f64>>(),
-                )
-                .map(|(a, b)| a + b)
-                .collect();
-        }
-
-        bar.finish();
-
-        chart
-            .draw_series(LineSeries::new(
-                (0..num_samples).map(|x| {
-                    (
-                        n_cycles as f64 * x as f64 / num_samples as f64,
-                        purities[x] / n_avg as f64,
+        let purities = (0..n_avg)
+            .into_par_iter()
+            .progress_with(bar)
+            .fold_with(Ok(vec![0.; num_samples]), |acc, _| {
+                let acc = acc?;
+                let trajectory = sol.trajectory(final_time)?;
+                Ok(acc
+                    .iter()
+                    .zip(
+                        &trajectory
+                            .0
+                            .iter()
+                            .map(|rho| (rho * rho).trace().re)
+                            .collect::<Vec<f64>>(),
                     )
-                }),
-                colors[i].clone(),
-            ))?
-            .label(labels[i]);
-        // .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], colors[i].clone()));
+                    .map(|(a, b)| a + b)
+                    .collect::<Vec<f64>>())
+            })
+            .collect::<Result<Vec<Vec<f64>>, SolverError>>()?
+            .into_par_iter()
+            .reduce(
+                || vec![0.; num_samples],
+                |acc, e| acc.iter().zip(e).map(|(a, b)| a + b).collect(),
+            )
+            .into_par_iter()
+            .map(|x| x / n_avg as f64)
+            .collect();
+
+        // let purities = (0..n_avg)
+        //     .into_par_iter()
+        //     .progress_with(bar1)
+        //     .map(|_| {
+        //         Ok(sol
+        //             .trajectory(final_time)?
+        //             .0
+        //             .iter()
+        //             .map(|rho| (rho * rho).trace().re)
+        //             .collect::<Vec<f64>>())
+        //     })
+        //     .collect::<Result<Vec<Vec<f64>>, SolverError>>()?
+        //     .into_par_iter()
+        //     .progress_with(bar2)
+        //     .reduce(
+        //         || vec![0.; num_samples],
+        //         |acc, e| acc.iter().zip(e).map(|(a, b)| a + b).collect(),
+        //     );
+
+        plot.add_trace(
+            plots::Scatter::new(
+                (0..num_samples)
+                    .map(|x| x as f64 * n_cycles as f64 / num_samples as f64)
+                    .collect(),
+                purities,
+            )
+            .mode(plots::Mode::Lines)
+            .line(plots::Line::default().width(3.).color(colors[i]))
+            .name(labels[i]),
+        );
     }
 
-    chart
-        .configure_series_labels()
-        .background_style(&WHITE.mix(0.8))
-        .border_style(&BLACK)
-        .draw()?;
+    let layout = plots::Layout::default()
+        .x_axis(
+            plots::Axis::default()
+                .show_grid(true)
+                .title(xtitle)
+                .range(vec![0, n_cycles].to_vec()),
+        )
+        .y_axis(
+            plots::Axis::default()
+                .show_grid(true)
+                .title(ytitle)
+                .range(vec![0., 1.].to_vec()),
+        )
+        .margin(plots::Margin::default().left(150))
+        .title(title)
+        .font(plots::Font::default().size(30));
+    // .plot_background_color(plots::NamedColor::White);
 
-    root.present()?;
+    plot.set_layout(layout);
 
-    Command::new("wslview")
-        .arg(filepath)
-        .output()
-        .expect("Could not open the image");
+    plots::show_png(&plot, options);
 
     Ok(())
 }

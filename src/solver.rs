@@ -3,7 +3,12 @@ use crate::wiener::Wiener;
 use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use itertools::Itertools;
 use nalgebra as na;
+use rand::rngs::ThreadRng;
 use rayon::prelude::*;
+use std::{
+    sync::{Arc, Mutex},
+    thread::Thread,
+};
 
 pub struct Solver<'a> {
     pub wiener: Wiener,
@@ -61,7 +66,7 @@ impl<'a> Solver<'a> {
         })
     }
 
-    fn step(&mut self, state: &State) -> (State, Vec<f64>) {
+    fn step(&self, state: &State, rng: &mut ThreadRng) -> (State, Vec<f64>) {
         let id = na::DMatrix::identity(self.size, self.size);
 
         let fst = (&self.hi
@@ -78,7 +83,7 @@ impl<'a> Solver<'a> {
             .zip(&self.sqrtetas)
             .map(|(l, sqrteta)| l.scale(*sqrteta));
 
-        let w = self.wiener.sample_vector(self.dt, self.ls.len());
+        let w = self.wiener.sample_vector(self.dt, self.ls.len(), rng);
         let letaw = leta.zip(w.clone());
         let snd = letaw
             .clone()
@@ -118,10 +123,7 @@ impl<'a> Solver<'a> {
             .collect::<Vec<f64>>()
     }
 
-    pub fn trajectory(
-        &mut self,
-        final_time: f64,
-    ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
+    pub fn trajectory(&self, final_time: f64) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
         if final_time <= 0. {
             return Err(SolverError::NegativeFinalTime);
         }
@@ -130,24 +132,32 @@ impl<'a> Solver<'a> {
         let mut states = Vec::with_capacity(n_samples);
         states.push(self.state.clone());
 
+        let mut rng = rand::rng();
+
         for i in 1..n_samples {
-            let (state, measurement) = self.step(&states[i - 1]);
+            let (state, measurement) = self.step(&states[i - 1], &mut rng);
             states.push(state);
             measurements.push(measurement);
         }
 
         // we add the measurement of the last state
-        let noises = self.wiener.sample_vector(self.dt, self.ls.len());
+        let noises = self.wiener.sample_vector(self.dt, self.ls.len(), &mut rng);
         measurements.push(self.measurement(&states[states.len() - 1], noises));
 
         Ok((states, measurements))
     }
 
-    pub fn parallel_trajectories(
-        &mut self,
-        final_time: f64,
-        par_instances: usize,
-    ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
-        panic!("")
-    }
+    // pub fn parallel_trajectories(
+    //     &self,
+    //     final_time: f64,
+    //     par_instances: usize,
+    // ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
+    //     if final_time <= 0. {
+    //         return Err(SolverError::NegativeFinalTime);
+    //     }
+    //
+    //     let n_samples = (final_time / self.dt).floor() as usize;
+    //
+    //     panic!("")
+    // }
 }
