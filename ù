@@ -27,12 +27,8 @@ fn plot_obsv(
     chart.configure_mesh().draw()?;
 
     chart.draw_series(LineSeries::new(
-        ts.iter()
-            .zip(obsv)
-            .map(|(t, o)| (*t as f32, o[0] as f32))
-            .collect::<Vec<(f32, f32)>>(),
-        &RED,
-    ));
+        ts.iter().zip(obsv).map(|t, o| (t as f32, o[0] as f32)).collect::<Vec<(f32, f32)>>(), &RED
+    ))
 
     root.present()?;
     Ok(())

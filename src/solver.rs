@@ -4,34 +4,44 @@ use indicatif::{ProgressBar, ProgressIterator, ProgressStyle};
 use itertools::Itertools;
 use nalgebra as na;
 use rand::rngs::ThreadRng;
+use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
 use std::{
     sync::{Arc, Mutex},
     thread::Thread,
 };
 
-pub struct Solver<'a> {
+pub struct StochasticSolver<'a, D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
     pub wiener: Wiener,
-    pub state: &'a State,
-    pub h: &'a Operator,
-    pub hi: Operator,
-    pub ls: &'a Vec<Operator>,
+    pub state: &'a State<D>,
+    pub h: &'a Operator<D>,
+    pub hi: Operator<D>,
+    pub ls: &'a Vec<Operator<D>>,
     pub etas: &'a Vec<f64>,
     pub sqrtetas: Vec<f64>,
     pub size: usize,
     pub dt: f64,
 }
 
-impl<'a> Solver<'a> {
+impl<'a, D> StochasticSolver<'a, D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
     pub fn new(
-        init_state: &'a State,
-        h: &'a Operator,
-        ls: &'a Vec<Operator>,
+        init_state: &'a State<D>,
+        h: &'a Operator<D>,
+        ls: &'a Vec<Operator<D>>,
         etas: &'a Vec<f64>,
         dt: f64,
     ) -> Result<Self, SolverError> {
         let state_shape = init_state.shape();
-        let h_shape = h.shape();
         let hi = h * na::Complex::I;
 
         if dt <= 0. {
@@ -66,7 +76,7 @@ impl<'a> Solver<'a> {
         })
     }
 
-    fn step(&self, state: &State, rng: &mut ThreadRng) -> (State, Vec<f64>) {
+    fn step(&self, state: &State<D>, rng: &mut ThreadRng) -> (State<D>, Vec<f64>) {
         let id = na::DMatrix::identity(self.size, self.size);
 
         let fst = (&self.hi
@@ -74,7 +84,7 @@ impl<'a> Solver<'a> {
                 .ls
                 .iter()
                 .map(|l| l.adjoint() * l.scale(0.5))
-                .sum::<Operator>())
+                .sum::<Operator<D>>())
         .scale(self.dt);
 
         let leta = self
@@ -88,7 +98,7 @@ impl<'a> Solver<'a> {
         let snd = letaw
             .clone()
             .map(|(l, w)| &l * ((&l * state + state * &l.adjoint()).trace() * self.dt + w))
-            .sum::<Operator>();
+            .sum::<Operator<D>>();
 
         let letawr = letaw.zip(0..self.ls.len());
         let thd = letawr
@@ -97,7 +107,7 @@ impl<'a> Solver<'a> {
             .map(|(((letar, wr), r), ((letas, ws), s))| {
                 letar * letas.scale(0.5 * (wr * ws - delta(&r, &s) * self.dt))
             })
-            .sum::<Operator>();
+            .sum::<Operator<D>>();
 
         let mn = id - fst + snd + thd;
 
@@ -107,12 +117,12 @@ impl<'a> Solver<'a> {
                 .iter()
                 .zip(self.etas)
                 .map(|(l, eta)| l * state * l.adjoint().scale(self.dt * (1. - eta)))
-                .sum::<Operator>();
+                .sum::<Operator<D>>();
 
         (num.scale(1. / num.trace().re), self.measurement(state, w))
     }
 
-    fn measurement(&self, state: &State, wieners: Vec<f64>) -> Vec<f64> {
+    fn measurement(&self, state: &State<D>, wieners: Vec<f64>) -> Vec<f64> {
         self.ls
             .iter()
             .zip(&self.sqrtetas)
@@ -123,7 +133,10 @@ impl<'a> Solver<'a> {
             .collect::<Vec<f64>>()
     }
 
-    pub fn trajectory(&self, final_time: f64) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
+    pub fn trajectory(
+        &self,
+        final_time: f64,
+    ) -> Result<(Vec<State<D>>, Vec<Vec<f64>>), SolverError> {
         if final_time <= 0. {
             return Err(SolverError::NegativeFinalTime);
         }
@@ -146,18 +159,136 @@ impl<'a> Solver<'a> {
 
         Ok((states, measurements))
     }
+}
 
-    // pub fn parallel_trajectories(
-    //     &self,
-    //     final_time: f64,
-    //     par_instances: usize,
-    // ) -> Result<(Vec<State>, Vec<Vec<f64>>), SolverError> {
-    //     if final_time <= 0. {
-    //         return Err(SolverError::NegativeFinalTime);
-    //     }
-    //
-    //     let n_samples = (final_time / self.dt).floor() as usize;
-    //
-    //     panic!("")
-    // }
+pub trait System<V> {
+    fn system(&self, t: f64, x: &V, dx: &mut V);
+}
+
+#[derive(Debug, Clone)]
+pub struct SolverOutput<V>(Vec<f64>, Vec<V>);
+
+impl<V> SolverOutput<V> {
+    pub fn new(x: Vec<f64>, y: Vec<V>) -> Self {
+        Self(x, y)
+    }
+
+    pub fn with_capacity(n: usize) -> Self {
+        Self(Vec::with_capacity(n), Vec::with_capacity(n))
+    }
+
+    pub fn push(&mut self, x: f64, y: V) {
+        self.0.push(x);
+        self.1.push(y);
+    }
+
+    pub fn append(&mut self, mut other: Self) {
+        self.0.append(&mut other.0);
+        self.1.append(&mut other.1);
+    }
+
+    /// Returns a pair that contains references to the internal vectors
+    pub fn get(&self) -> (&Vec<f64>, &Vec<V>) {
+        (&self.0, &self.1)
+    }
+}
+
+impl<V> Default for SolverOutput<V> {
+    fn default() -> Self {
+        Self(Default::default(), Default::default())
+    }
+}
+
+pub struct Rk4<V, F>
+where
+    F: System<V>,
+{
+    f: F,
+    x0: f64,
+    x_end: f64,
+    y0: V,
+    step_size: f64,
+    half_step: f64,
+    num_steps: usize,
+    results: SolverOutput<V>,
+}
+
+impl<D: na::Dim, F> Rk4<State<D>, F>
+where
+    F: System<State<D>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    pub fn new(f: F, x0: f64, y0: State<D>, x_end: f64, step_size: f64) -> Self {
+        let num_steps = (((x_end - x0) / step_size).ceil()).to_usize().unwrap();
+
+        Self {
+            f,
+            x0,
+            x_end,
+            y0,
+            step_size,
+            half_step: step_size / 2.,
+            num_steps,
+            results: SolverOutput::with_capacity(num_steps),
+        }
+    }
+
+    pub fn integrate(&mut self) -> SolverResult<()> {
+        self.results.push(self.x0, self.y0.clone());
+        let mut x = self.x0;
+        let mut y = self.y0.clone();
+        let shape = self.y0.shape_generic();
+        let mut k1 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k2 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k3 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k4 = na::OMatrix::zeros_generic(shape.0, shape.1);
+
+        for _ in 0..self.num_steps {
+            self.f.system(x, &y, &mut k1);
+            self.f.system(
+                x + self.half_step,
+                &(&y + &k1.scale(self.half_step)),
+                &mut k2,
+            );
+            self.f.system(
+                x + self.half_step,
+                &(&y + &k2.scale(self.half_step)),
+                &mut k3,
+            );
+            self.f.system(
+                x + self.step_size,
+                &(&y + &k3.scale(self.step_size)),
+                &mut k4,
+            );
+
+            x += self.step_size;
+            y += (&k1 + &k2.scale(2.) + &k3.scale(2.) + &k4).scale(self.step_size / 6.);
+            self.results.push(x, y.clone());
+        }
+
+        Ok(())
+    }
+
+    /// Getter for the independent variable's output.
+    pub fn x_out(&self) -> &Vec<f64> {
+        self.results.get().0
+    }
+
+    /// Getter for the dependent variables' output.
+    pub fn y_out(&self) -> &Vec<State<D>> {
+        self.results.get().1
+    }
+
+    /// Getter for the results type, a pair of independent and dependent variables
+    pub fn results(&self) -> &SolverOutput<State<D>> {
+        &self.results
+    }
+
+    pub fn num_steps(&self) -> usize {
+        self.num_steps
+    }
+
+    pub fn step_size(&self) -> f64 {
+        self.step_size
+    }
 }

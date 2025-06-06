@@ -1,37 +1,35 @@
 use lazy_static::lazy_static;
 pub use nalgebra as na;
-use nalgebra::ToTypenum;
-// use plotters::prelude::DrawingAreaErrorKind;
-use std::{
-    fmt::Display,
-    ops::{Add, Mul, Sub},
-};
+use nalgebra::Const;
+use std::ops::{Add, Mul, Sub};
+use thiserror::Error;
 
 type TMul<T> = <T as Mul>::Output;
 
-pub type State = na::DMatrix<na::Complex<f64>>;
-pub type Operator = na::DMatrix<na::Complex<f64>>;
+pub type State<D> = na::OMatrix<na::Complex<f64>, D, D>;
+pub type Operator<D> = State<D>;
+pub type SolverResult<T> = Result<T, SolverError>;
 
-lazy_static! {
-    pub static ref PAULI_X: na::DMatrix<na::Complex<f64>> = na::dmatrix![
-        na::Complex::ZERO,
-        na::Complex::ONE;
-        na::Complex::ONE,
-        na::Complex::ZERO
-    ];
-    pub static ref PAULI_Y: na::DMatrix<na::Complex<f64>> = na::dmatrix![
-        na::Complex::ZERO,
-        na::Complex::new(0., -1.);
-        na::Complex::ONE,
-        na::Complex::I
-    ];
-    pub static ref PAULI_Z: na::DMatrix<na::Complex<f64>> = na::dmatrix![
-        na::Complex::ONE,
-        na::Complex::ZERO;
-        na::Complex::ZERO,
-        na::Complex::new(-1., 0.)
-    ];
-}
+// lazy_static! {
+//     pub static ref PAULI_X: Operator = na::dmatrix![
+//         na::Complex::ZERO,
+//         na::Complex::ONE;
+//         na::Complex::ONE,
+//         na::Complex::ZERO
+//     ];
+//     pub static ref PAULI_Y: Operator<2> = na::dmatrix![
+//         na::Complex::ZERO,
+//         na::Complex::new(0., -1.);
+//         na::Complex::ZERO,
+//         na::Complex::I
+//     ];
+//     pub static ref PAULI_Z: Operator<2> = na::dmatrix![
+//         na::Complex::ONE,
+//         na::Complex::ZERO;
+//         na::Complex::ZERO,
+//         na::Complex::new(-1., 0.)
+//     ];
+// }
 
 pub fn commutator<'c, T>(a: &'c T, b: &'c T) -> <TMul<&'c T> as Sub>::Output
 where
@@ -48,6 +46,7 @@ where
 {
     a * b + b * a
 }
+
 pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
     if x == y {
         1.
@@ -56,51 +55,50 @@ pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
-pub enum SolverError {
-    ShapeError((usize, usize), (usize, usize)),
-    NotSquareError(usize, usize),
-    NotPositiveDt(f64),
-    InvalidEfficiency(f64),
-    NotHermitian,
-    NotPositiveSemidefinite,
-    NotUnitaryTrace(f64),
-    NegativeFinalTime,
-    IncompatibleNoiseShapes,
-    NotSquareNoises,
-    NoiseEfficiencyMismatch(usize, usize),
-    PlotError,
-    EmptyIterator,
+pub fn to_bloch<D>(rho: &State<D>) -> SolverResult<na::SVector<f64, 3>>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    if rho.shape() != (2, 2) {
+        Err(SolverError::ShapeError(rho.shape(), (2, 2)))
+    } else {
+        Ok(na::vector![
+            2. * rho[(0, 1)].re,
+            2. * rho[(1, 0)].im,
+            (rho[(0, 0)] - rho[(1, 1)]).re,
+        ])
+    }
 }
 
-impl Display for SolverError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SolverError::ShapeError(shape1, shape2) => {
-                write!(
-                    f,
-                    "Error, shapes {:?} and {:?} do not match",
-                    shape1, shape2
-                )
-            }
-            SolverError::NotSquareError(rows, cols) => write!(
-                f,
-                "Error, the given matrix is not square, with {} rows and {} cols",
-                rows, cols
-            ),
-            SolverError::NotPositiveDt(dt) => write!(f, "Error, the given time step {} is not positive", dt),
-            SolverError::InvalidEfficiency(eta) => write!(f, "Error, the given measurement efficiency {} is not valid since it is not in the interval [0, 1]",eta),
-            SolverError::NotHermitian => write!(f, "Error, the given matrix is not hermitian"),
-            SolverError::NotPositiveSemidefinite => write!(f, "Error, the given matrix is not positive semidefinite"),
-            SolverError::NotUnitaryTrace(trace) => write!(f, "Error, the given matrix has trace {}, which is different from 1", trace),
-            SolverError::NegativeFinalTime => write!(f, "Error, the final time of the simulation cannot be negative"),
-            SolverError::IncompatibleNoiseShapes => write!(f, "Error, the noise operators have incompatible noise shapes"),
-            SolverError::NotSquareNoises => write!(f, "Error, some of the noise operators are not square"),
-            SolverError::NoiseEfficiencyMismatch(etas, ls) => write!(f, "Error, the number of etas, {}, is different from the number of ls, {}", etas, ls),
-            SolverError::PlotError => write!(f, "Error encountered while plotting"),
-            SolverError::EmptyIterator => write!(f, "Error, the iterator was empty"),
-        }
-    }
+#[derive(Copy, Clone, Debug, Error)]
+pub enum SolverError {
+    #[error("Error, found shape {0:?}, expected shape {1:?}")]
+    ShapeError((usize, usize), (usize, usize)),
+    #[error("Error, the given matrix is not square, with {0} rows and {1} cols")]
+    NotSquareError(usize, usize),
+    #[error("Error, the given time step {0} is not positive")]
+    NotPositiveDt(f64),
+    #[error("Error, the given measurement efficiency {0} is not valid since it is not in the interval [0, 1]")]
+    InvalidEfficiency(f64),
+    #[error("Error, the given matrix is not hermitian")]
+    NotHermitian,
+    #[error("Error, the given matrix is not positive semidefinite")]
+    NotPositiveSemidefinite,
+    #[error("Error, the given matrix has trace {0}, which is different from 1")]
+    NotUnitaryTrace(f64),
+    #[error("Error, the final time of the simulation cannot be negative")]
+    NegativeFinalTime,
+    #[error("Error, the noise operators have incompatible noise shapes")]
+    IncompatibleNoiseShapes,
+    #[error("Error, some of the noise operators are not square")]
+    NotSquareNoises,
+    #[error("Error, the number of etas, {0}, is different from the number of ls, {1}")]
+    NoiseEfficiencyMismatch(usize, usize),
+    #[error("Error encountered while plotting")]
+    PlotError,
+    #[error("Error, the iterator was empty")]
+    EmptyIterator,
 }
 
 // impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
@@ -110,7 +108,13 @@ impl Display for SolverError {
 //     }
 // }
 
-pub fn check_hermiticity(op: &Operator) -> Result<(), SolverError> {
+pub fn check_hermiticity<D>(op: &Operator<D>) -> SolverResult<()>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
     if op == &op.adjoint() {
         Ok(())
     } else {
@@ -118,7 +122,13 @@ pub fn check_hermiticity(op: &Operator) -> Result<(), SolverError> {
     }
 }
 
-pub fn check_positivity(op: &Operator) -> Result<(), SolverError> {
+pub fn check_positivity<D>(op: &Operator<D>) -> SolverResult<()>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
     check_hermiticity(op)?;
     if op.symmetric_eigenvalues().iter().all(|&e| e >= 0.) {
         Ok(())
@@ -127,7 +137,13 @@ pub fn check_positivity(op: &Operator) -> Result<(), SolverError> {
     }
 }
 
-pub fn check_state(state: &State) -> Result<(), SolverError> {
+pub fn check_state<D>(state: &State<D>) -> SolverResult<()>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
     // if we know that the operator is positive semidefinite, surely the diagonal
     // is real, otherwise it would not be hermitian
     check_positivity(state)?;
