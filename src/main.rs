@@ -7,10 +7,12 @@ mod wiener;
 
 use std::f64::consts::PI;
 
+// use crate::plots;
 use crate::solver::{Rk4, StochasticSolver, System};
 use crate::utils::*;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressIterator, ProgressStyle};
 use num_cpus;
+use plotpy;
 use rayon::prelude::*;
 use std::process::Command;
 
@@ -34,19 +36,9 @@ impl System<Qubit> for QubitWisemanFME {
     }
 }
 
-fn wmfme() -> utils::SolverResult<Vec<na::SVector<f64, 3>>> {
-    let hamiltonian = na::Matrix2::new(
-        na::Complex::<f64>::ONE,
-        na::Complex::<f64>::ZERO,
-        na::Complex::<f64>::ZERO,
-        -na::Complex::<f64>::ONE,
-    );
-    let l = na::Matrix2::new(
-        na::Complex::<f64>::ZERO,
-        na::Complex::<f64>::ONE,
-        na::Complex::<f64>::ONE,
-        na::Complex::<f64>::ZERO,
-    );
+fn wmfme() -> utils::SolverResult<()> {
+    let hamiltonian = na::Matrix2::new(1.0, 0.0, 0.0, -1.0).cast::<na::Complex<f64>>();
+    let l = na::Matrix2::new(0.0, 1.0, 1.0, 0.0).cast::<na::Complex<f64>>();
     let f = na::Matrix2::new(
         na::Complex::<f64>::ZERO,
         -na::Complex::<f64>::I,
@@ -57,76 +49,93 @@ fn wmfme() -> utils::SolverResult<Vec<na::SVector<f64, 3>>> {
     let hhat = hamiltonian + (f * l + l.adjoint() * f).scale(0.5);
 
     let system = QubitWisemanFME { h: hhat, l: lhat };
-    let x0 = na::Matrix2::new(
-        na::Complex::<f64>::ONE,
-        na::Complex::<f64>::ZERO,
-        na::Complex::<f64>::ZERO,
-        na::Complex::<f64>::ONE,
-    )
-    .scale(0.5);
 
-    let mut solver = Rk4::new(system, 0.0, x0, 2.0, 0.001);
-    solver.integrate()?;
+    // let mut xobs = plotpy::Curve::new();
+    // xobs.set_label("X observable")
+    //     .set_line_color("#FF0000")
+    //     .set_line_width(3.0)
+    //     .set_line_style("-");
+    //
+    // xobs.draw(t_out, &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>());
+    //
+    // let mut yobs = plotpy::Curve::new();
+    // yobs.set_label("Y observable")
+    //     .set_line_color("#00FF00")
+    //     .set_line_width(3.0)
+    //     .set_line_style("--");
+    //
+    // yobs.draw(t_out, &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>());
+    //
+    // let mut zobs = plotpy::Curve::new();
+    // zobs.set_label("Z observable")
+    //     .set_line_color("#0000FF")
+    //     .set_line_width(3.0)
+    //     .set_line_style("-");
+    //
+    // zobs.draw(t_out, &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>());
+    //
+    // let mut plot = plotpy::Plot::new();
+    // plot.add(&xobs)
+    //     .add(&yobs)
+    //     .add(&zobs)
+    //     .set_range(0.0, 2.0, -1.0, 1.0)
+    //     .grid_labels_legend("time", "observable value");
+    //
+    // plot.show("tempimages")?;
 
-    let (t_out, rho_out) = solver.results().get();
+    let mut sphere = plotpy::Surface::new();
+    sphere
+        .set_surf_color("#00000020")
+        .draw_sphere(&[0.0, 0.0, 0.0], 1.0, 40, 40)?;
 
-    rho_out
-        .iter()
-        .map(|rho| to_bloch(rho))
-        .collect::<SolverResult<Vec<na::SVector<f64, 3>>>>()
+    let mut plot = plotpy::Plot::new();
+    plot.add(&sphere).set_equal_axes(true);
 
-    // plot.add_trace(
-    //     plots::Scatter::new(ts.clone(), obs.iter().map(|x| x[0]).collect::<Vec<f64>>())
-    //         .mode(plots::Mode::Lines)
-    //         .line(
-    //             plots::Line::default()
-    //                 .width(3.)
-    //                 .color(plots::NamedColor::Red),
-    //         )
-    //         .name("X observable"),
-    // );
-    //
-    // plot.add_trace(
-    //     plots::Scatter::new(ts.clone(), obs.iter().map(|x| x[1]).collect::<Vec<f64>>())
-    //         .mode(plots::Mode::Lines)
-    //         .line(
-    //             plots::Line::default()
-    //                 .width(3.)
-    //                 .color(plots::NamedColor::Blue),
-    //         )
-    //         .name("Y observable"),
-    // );
-    //
-    // plot.add_trace(
-    //     plots::Scatter::new(ts.clone(), obs.iter().map(|x| x[2]).collect::<Vec<f64>>())
-    //         .mode(plots::Mode::Lines)
-    //         .line(
-    //             plots::Line::default()
-    //                 .width(3.)
-    //                 .color(plots::NamedColor::Green),
-    //         )
-    //         .name("Z observable"),
-    // );
-    //
-    // let layout = plots::Layout::default()
-    //     .x_axis(
-    //         plots::Axis::default()
-    //             .show_grid(true)
-    //             .title("Time")
-    //             .range(vec![0., 2.0].to_vec()),
-    //     )
-    //     .y_axis(
-    //         plots::Axis::default()
-    //             .show_grid(true)
-    //             .title("Observable value")
-    //             .range(vec![-1., 1.].to_vec()),
-    //     )
-    //     .margin(plots::Margin::default().left(150))
-    //     .title("Observable values")
-    //     .font(plots::Font::default().size(30));
-    //
-    // plot.set_layout(layout);
-    // plots::show_png(&plot, options);
+    let colors = vec![
+        "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
+        "#ff0037", "#e1ff00",
+    ];
+
+    for i in 0..10 {
+        let x0 = random_qubit_state();
+
+        let mut solver = Rk4::new(system, 0.0, x0, 2.0, 0.001);
+        solver.integrate()?;
+
+        let (t_out, rho_out) = solver.results().get();
+
+        let obsv = rho_out
+            .iter()
+            .map(|rho| to_bloch(rho))
+            .collect::<Vec<BlochVector>>();
+        let mut trajectory = plotpy::Curve::new();
+        trajectory.set_line_color(colors[i]).draw_3d(
+            &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
+        );
+
+        plot.add(&trajectory);
+
+        let mut start = plotpy::Curve::new();
+        start
+            .set_line_color(colors[i])
+            .set_marker_style("o")
+            .set_marker_size(10.0)
+            .points_3d_begin()
+            .points_3d_add(obsv[0][0], obsv[0][1], obsv[0][2])
+            .points_3d_end();
+
+        plot.add(&start);
+    }
+
+    // .add(&equator)
+    // .add(&meridian)
+    // .add(&meridian2);
+    //     .set_equal_axes(true);
+    plot.show("tempimages")?;
+
+    Ok(())
 }
 
 // fn example() -> utils::SolverResult<()> {

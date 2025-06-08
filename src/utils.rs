@@ -1,6 +1,7 @@
-use lazy_static::lazy_static;
 pub use nalgebra as na;
 use nalgebra::Const;
+use plotpy::StrError;
+use rand::prelude::*;
 use std::ops::{Add, Mul, Sub};
 use thiserror::Error;
 
@@ -9,27 +10,30 @@ type TMul<T> = <T as Mul>::Output;
 pub type State<D> = na::OMatrix<na::Complex<f64>, D, D>;
 pub type Operator<D> = State<D>;
 pub type SolverResult<T> = Result<T, SolverError>;
+pub type BlochVector = na::SVector<f64, 3>;
+pub type QubitState = State<na::Const<2>>;
+pub type QubitOperator = Operator<na::Const<2>>;
 
-// lazy_static! {
-//     pub static ref PAULI_X: Operator = na::dmatrix![
-//         na::Complex::ZERO,
-//         na::Complex::ONE;
-//         na::Complex::ONE,
-//         na::Complex::ZERO
-//     ];
-//     pub static ref PAULI_Y: Operator<2> = na::dmatrix![
-//         na::Complex::ZERO,
-//         na::Complex::new(0., -1.);
-//         na::Complex::ZERO,
-//         na::Complex::I
-//     ];
-//     pub static ref PAULI_Z: Operator<2> = na::dmatrix![
-//         na::Complex::ONE,
-//         na::Complex::ZERO;
-//         na::Complex::ZERO,
-//         na::Complex::new(-1., 0.)
-//     ];
-// }
+pub const PAULI_X: QubitOperator = na::Matrix2::new(
+    na::Complex::ZERO,
+    na::Complex::ONE,
+    na::Complex::ONE,
+    na::Complex::ZERO,
+);
+
+pub const PAULI_Y: QubitOperator = na::Matrix2::new(
+    na::Complex::ZERO,
+    na::Complex::new(0.0, -1.0),
+    na::Complex::I,
+    na::Complex::ZERO,
+);
+
+pub const PAULI_Z: QubitOperator = na::Matrix2::new(
+    na::Complex::ONE,
+    na::Complex::ZERO,
+    na::Complex::ZERO,
+    na::Complex::new(-1.0, 0.0),
+);
 
 pub fn commutator<'c, T>(a: &'c T, b: &'c T) -> <TMul<&'c T> as Sub>::Output
 where
@@ -55,20 +59,47 @@ pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
     }
 }
 
-pub fn to_bloch<D>(rho: &State<D>) -> SolverResult<na::SVector<f64, 3>>
-where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
-    na::DefaultAllocator: na::allocator::Allocator<D, D>,
-{
-    if rho.shape() != (2, 2) {
-        Err(SolverError::ShapeError(rho.shape(), (2, 2)))
-    } else {
-        Ok(na::vector![
-            2. * rho[(0, 1)].re,
-            2. * rho[(1, 0)].im,
-            (rho[(0, 0)] - rho[(1, 1)]).re,
-        ])
+pub fn to_bloch(rho: &QubitState) -> BlochVector {
+    na::vector![
+        2. * rho[(0, 1)].re,
+        2. * rho[(1, 0)].im,
+        (rho[(0, 0)] - rho[(1, 1)]).re,
+    ]
+}
+
+fn random_vector() -> na::SVector<f64, 3> {
+    let mut rng = rand::rng();
+    na::Vector3::new(
+        rng.random_range(-1.0..1.0),
+        rng.random_range(-1.0..1.0),
+        rng.random_range(-1.0..1.0),
+    )
+}
+
+pub fn random_bloch() -> BlochVector {
+    loop {
+        let vec = random_vector();
+        if vec.norm() <= 1. {
+            return vec;
+        }
     }
+}
+
+pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
+    if bloch.norm() > 1. {
+        Err(SolverError::BlochNormError(bloch.norm()))
+    } else {
+        Ok((QubitOperator::identity()
+            + PAULI_X.scale(bloch[0])
+            + PAULI_Y.scale(bloch[1])
+            + PAULI_Z.scale(bloch[2]))
+        .scale(0.5))
+    }
+}
+
+pub fn random_qubit_state() -> QubitState {
+    from_bloch(&random_bloch())
+        .expect("Cannot have norm larger than 1 by construction, this should never fail")
 }
 
 #[derive(Copy, Clone, Debug, Error)]
@@ -99,6 +130,18 @@ pub enum SolverError {
     PlotError,
     #[error("Error, the iterator was empty")]
     EmptyIterator,
+    #[error("Error, a Bloch vector must have 3 components, found {0}")]
+    BlochSizeError(usize),
+    #[error("Error, a Bloch vector must have norm less than 1, the given one has norm {0}")]
+    BlochNormError(f64),
+    #[error("{0}")]
+    PlotPyError(&'static str),
+}
+
+impl From<StrError> for SolverError {
+    fn from(value: StrError) -> Self {
+        Self::PlotPyError(value)
+    }
 }
 
 // impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
