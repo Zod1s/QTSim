@@ -1,6 +1,7 @@
 pub(crate) use rand::prelude::*;
 use rand_distr;
 
+#[derive(Clone, Copy, Debug)]
 pub struct Wiener {
     distr: rand_distr::Normal<f64>,
 }
@@ -13,11 +14,11 @@ impl Wiener {
         }
     }
 
-    pub fn sample_increment(&self, dt: f64, rng: &mut ThreadRng) -> f64 {
+    pub fn sample_increment<R: Rng + ?Sized>(&self, dt: f64, rng: &mut R) -> f64 {
         self.distr.sample(rng) * dt.sqrt()
     }
 
-    pub fn sample_vector(&self, dt: f64, n: usize, rng: &mut ThreadRng) -> Vec<f64> {
+    pub fn sample_vector<R: Rng + ?Sized>(&self, dt: f64, n: usize, rng: &mut R) -> Vec<f64> {
         (0..n).map(|_| self.sample_increment(dt, rng)).collect()
     }
 }

@@ -59,14 +59,26 @@ pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
     }
 }
 
-pub fn to_bloch(rho: &QubitState) -> BlochVector {
+pub fn to_bloch(rho: &QubitState) -> SolverResult<BlochVector> {
+    let bloch = na::vector![
+        2. * rho[(0, 1)].re,
+        2. * rho[(1, 0)].im,
+        (rho[(0, 0)] - rho[(1, 1)]).re,
+    ];
+    if bloch.norm() > 1. {
+        Err(SolverError::BlochNormError(bloch.norm()))
+    } else {
+        Ok(bloch)
+    }
+}
+
+pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
     na::vector![
         2. * rho[(0, 1)].re,
         2. * rho[(1, 0)].im,
         (rho[(0, 0)] - rho[(1, 1)]).re,
     ]
 }
-
 fn random_vector() -> na::SVector<f64, 3> {
     let mut rng = rand::rng();
     na::Vector3::new(
