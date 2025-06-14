@@ -1,0 +1,97 @@
+    Checking QTSim v0.1.0 (/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim)
+warning: the loop variable `i` is only used to index `colors`
+  --> src/examples.rs:29:14
+   |
+29 |     for i in 0..10 {
+   |              ^^^^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_range_loop
+   = note: `#[warn(clippy::needless_range_loop)]` on by default
+help: consider using an iterator
+   |
+29 -     for i in 0..10 {
+29 +     for <item> in &colors {
+   |
+
+warning: writing `&Vec` instead of `&[_]` involves a new object where a slice will do
+   --> src/solver.rs:143:66
+    |
+143 |     fn system(&mut self, t: f64, dt: f64, x: &V, dx: &mut V, dw: &Vec<f64>);
+    |                                                                  ^^^^^^^^^ help: change this to: `&[f64]`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#ptr_arg
+    = note: `#[warn(clippy::ptr_arg)]` on by default
+
+warning: the following explicit lifetimes could be elided: 'a
+  --> src/systems.rs:51:6
+   |
+51 | impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanSSE<'a, R> {
+   |      ^^                                                                            ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+   = note: `#[warn(clippy::needless_lifetimes)]` on by default
+help: elide the lifetimes
+   |
+51 - impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanSSE<'a, R> {
+51 + impl<R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanSSE<'_, R> {
+   |
+
+warning: the following explicit lifetimes could be elided: 'a
+  --> src/systems.rs:97:6
+   |
+97 | impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequentialControl<'a, R> {
+   |      ^^                                                                                   ^^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+help: elide the lifetimes
+   |
+97 - impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequentialControl<'a, R> {
+97 + impl<R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequentialControl<'_, R> {
+   |
+
+warning: the following explicit lifetimes could be elided: 'a
+   --> src/systems.rs:176:6
+    |
+176 | impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedback<'a, R> {
+    |      ^^                                                                             ^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+help: elide the lifetimes
+    |
+176 - impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedback<'a, R> {
+176 + impl<R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedback<'_, R> {
+    |
+
+warning: the following explicit lifetimes could be elided: 'a
+   --> src/systems.rs:246:6
+    |
+246 | impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'a, R> {
+    |      ^^                                                                               ^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#needless_lifetimes
+help: elide the lifetimes
+    |
+246 - impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'a, R> {
+246 + impl<R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'_, R> {
+    |
+
+warning: useless use of `vec!`
+   --> src/examples.rs:360:18
+    |
+360 |       let colors = vec![
+    |  __________________^
+361 | |         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
+362 | |         "#ff0037", "#e1ff00",
+363 | |     ];
+    | |_____^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/master/index.html#useless_vec
+    = note: `#[warn(clippy::useless_vec)]` on by default
+help: you can use an array directly
+    |
+360 ~     let colors = ["#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
+361 ~         "#ff0037", "#e1ff00"];
+    |
+
+warning: `QTSim` (bin "QTSim") generated 7 warnings (run `cargo clippy --fix --bin "QTSim"` to apply 5 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.67s

@@ -1,5 +1,4 @@
 pub(crate) use rand::prelude::*;
-use rand_distr;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Wiener {

@@ -139,7 +139,8 @@ where
 }
 
 pub trait StochasticSystem<V> {
-    fn system(&self, t: f64, dt: f64, x: &V, dx: &mut V, dw: &Vec<f64>);
+    // need to have a mutable reference to update the total output signal y
+    fn system(&mut self, t: f64, dt: f64, x: &V, dx: &mut V, dw: &Vec<f64>);
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>);
     // handles only single measurement for now
     fn measurement(&self, x: &V, dt: f64, dw: f64) -> f64;
