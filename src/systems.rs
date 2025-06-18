@@ -132,7 +132,7 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequenti
 }
 
 #[derive(Debug)]
-pub struct QubitNewFeedback<'a, R: wiener::Rng + ?Sized> {
+pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
     f0: QubitOperator,
@@ -145,7 +145,7 @@ pub struct QubitNewFeedback<'a, R: wiener::Rng + ?Sized> {
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedback<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
     pub fn new(
         h: QubitOperator,
         l: QubitOperator,
@@ -173,10 +173,12 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedback<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedback<'a, R> {
-    fn system(&mut self, _: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV1<'a, R> {
+    fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
-        let hhat = self.h + self.hcor + self.f0.scale(self.y - self.yd);
+        let corr = if t > 0. { self.y / t - self.yd } else { 0. };
+        // let corr = corr.powi(2);
+        let hhat = self.h + self.hcor + self.f0.scale(corr);
         let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
         let snd = self
             .lhat
@@ -205,38 +207,19 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedb
 pub struct QubitNewFeedbackV2<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
-    f0: QubitOperator,
-    f1: QubitOperator,
-    hcor: QubitOperator,
-    lhat: QubitOperator,
-    y: f64,
-    yd: f64,
+    f: QubitOperator,
+    dy: f64,
     rng: &'a mut R,
     wiener: wiener::Wiener,
 }
 
 impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV2<'a, R> {
-    pub fn new(
-        h: QubitOperator,
-        l: QubitOperator,
-        f0: QubitOperator,
-        f1: QubitOperator,
-        rhod: QubitState,
-        rng: &'a mut R,
-    ) -> Self {
-        let lhat = l - f1 * na::Complex::I;
-        let hcor = (f1 * l + l.adjoint() * f1).scale(0.5);
-        let yd = ((l + l.adjoint()) * rhod).trace().re;
-
+    pub fn new(h: QubitOperator, l: QubitOperator, f: QubitOperator, rng: &'a mut R) -> Self {
         Self {
             h,
             l,
-            f0,
-            f1,
-            hcor,
-            lhat,
-            y: 0.,
-            yd,
+            f,
+            dy: 0.,
             rng,
             wiener: wiener::Wiener::new(),
         }
@@ -246,20 +229,18 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV2<'a, R> {
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
-        let hhat = self.h + self.hcor + self.f0.scale(self.y - self.yd * t);
-        let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
+        self.dy = self.measurement(x, dt, dw[0]);
+        let hhat = self.h + self.f.scale(self.dy / dt);
+        let fst = (hhat * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
         let snd = self
-            .lhat
-            .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt);
+            .l
+            .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
+        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt);
 
         let m = id - fst + snd + thd;
 
         let num = m * x * m.adjoint();
         *dx = num.scale(1. / num.trace().re) - x;
-
-        let dy = self.measurement(x, dt, dw[0]);
-        self.y += dy;
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

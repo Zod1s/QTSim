@@ -201,8 +201,8 @@ pub fn wmseq() -> SolverResult<()> {
     // let x0 = random_qubit_state();
     let x0bloch = to_bloch(&x0)?;
 
-    let num_tries = 10;
-    let final_time: f64 = 2.0;
+    let num_tries = 1;
+    let final_time: f64 = 10.0;
     let dt = 0.001;
 
     let mut plot = plotpy::Plot::new();
@@ -316,6 +316,18 @@ pub fn wmseq() -> SolverResult<()> {
         );
 
     plot.add(&trajectory);
+
+    let last = obsv.last().unwrap();
+    let mut end = plotpy::Curve::new();
+
+    end.set_line_color("#00FF00")
+        .set_marker_style("o")
+        .set_marker_size(10.0)
+        .points_3d_begin()
+        .points_3d_add(last[0], last[1], last[2])
+        .points_3d_end();
+
+    plot.add(&end);
 
     plot.set_equal_axes(true).show("tempimages")?;
 
@@ -512,32 +524,72 @@ pub fn newfeedback() -> SolverResult<()> {
 
     let h = PAULI_Z;
     let l = PAULI_X;
-    let f0 = QubitOperator::new(
-        na::Complex::ONE,
-        na::Complex::ONE,
-        na::Complex::ONE,
-        na::Complex::ONE,
-    )
-    .scale(0.5);
-    let f1 = PAULI_Y;
-    let rhod = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast::<na::Complex<f64>>();
+    let f = PAULI_Y;
+    // let rhod = na::Matrix2::new(1., 0., 0., 0.).cast::<na::Complex<f64>>();
     let mut rng = StdRng::seed_from_u64(0);
-    let mut system = systems::QubitNewFeedbackV2::new(h, l, f0, f1, rhod, &mut rng);
+    let mut system = systems::QubitNewFeedbackV2::new(h, l, f, &mut rng);
 
     let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
     // let x0 = random_qubit_state();
     let x0bloch = to_bloch(&x0)?;
 
-    let final_time: f64 = 6.0;
+    let num_tries = 1;
+    let final_time: f64 = 40.0;
     let dt = 0.001;
 
-    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-    solver.integrate();
-    let (_, rho_out, _) = solver.results().get();
-    let obsv = rho_out
-        .iter()
-        .map(to_bloch_unchecked)
-        .collect::<Vec<BlochVector>>();
+    let colors = [
+        "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
+        "#ff0037", "#e1ff00",
+    ];
+
+    // let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    // solver.integrate();
+    // let (t_out, rho_out, _) = solver.results().get();
+    // let obsv = rho_out
+    //     .iter()
+    //     .map(to_bloch_unchecked)
+    //     .collect::<Vec<BlochVector>>();
+
+    let bar = ProgressBar::new(num_tries).with_style(
+        ProgressStyle::default_bar()
+            .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+            .unwrap(),
+    );
+
+    for i in 0..num_tries {
+        bar.inc(1);
+        let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        solver.integrate()?;
+
+        let (_, rho_out, _) = solver.results().get();
+
+        let obsv = rho_out
+            .iter()
+            .map(to_bloch_unchecked)
+            .collect::<Vec<BlochVector>>();
+
+        let mut trajectory = plotpy::Curve::new();
+        trajectory.set_line_color(colors[i as usize]).draw_3d(
+            &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
+        );
+
+        plot.add(&trajectory);
+
+        let last = obsv.last().unwrap();
+        let mut end = plotpy::Curve::new();
+
+        end.set_line_color(colors[i as usize])
+            .set_marker_style("o")
+            .set_marker_size(10.0)
+            .points_3d_begin()
+            .points_3d_add(last[0], last[1], last[2])
+            .points_3d_end();
+
+        plot.add(&end);
+    }
+    bar.finish();
 
     let mut start = plotpy::Curve::new();
     start
@@ -550,15 +602,24 @@ pub fn newfeedback() -> SolverResult<()> {
 
     plot.add(&start);
 
-    let mut trajectory = plotpy::Curve::new();
-    trajectory.set_line_color("#ff0000").draw_3d(
-        &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
-        &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
-        &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
-    );
-
-    plot.add(&trajectory);
     plot.set_equal_axes(true).show("tempimages")?;
+    //
+    // let mut plot2 = plotpy::Plot::new();
+    //
+    // let mut xaxis = plotpy::Curve::new();
+    // xaxis
+    //     .set_line_color("#FF0000")
+    //     .draw(t_out, &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>());
+    // let mut yaxis = plotpy::Curve::new();
+    // yaxis
+    //     .set_line_color("#00FF00")
+    //     .draw(t_out, &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>());
+    // let mut zaxis = plotpy::Curve::new();
+    // zaxis
+    //     .set_line_color("#0000FF")
+    //     .draw(t_out, &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>());
+    // plot2.add(&xaxis).add(&yaxis).add(&zaxis);
+    // plot2.set_equal_axes(true).show("tempimages")?;
 
     Ok(())
 }
