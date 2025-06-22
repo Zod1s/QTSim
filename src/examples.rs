@@ -522,9 +522,14 @@ pub fn newfeedback() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
     plots::plot_bloch_sphere(&mut plot)?;
 
-    let h = PAULI_Z;
-    let l = PAULI_X;
-    let f = PAULI_Y;
+    let h = PAULI_Z + PAULI_X + PAULI_Y;
+    let l = QubitOperator::new(
+        na::Complex::ZERO,
+        na::Complex::ONE,
+        na::Complex::ZERO,
+        na::Complex::ZERO,
+    );
+    let f = PAULI_X;
     // let rhod = na::Matrix2::new(1., 0., 0., 0.).cast::<na::Complex<f64>>();
     let mut rng = StdRng::seed_from_u64(0);
     let mut system = systems::QubitNewFeedbackV2::new(h, l, f, &mut rng);
@@ -534,7 +539,7 @@ pub fn newfeedback() -> SolverResult<()> {
     let x0bloch = to_bloch(&x0)?;
 
     let num_tries = 1;
-    let final_time: f64 = 40.0;
+    let final_time: f64 = 5.0;
     let dt = 0.001;
 
     let colors = [
