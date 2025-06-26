@@ -1,4 +1,4 @@
-pub use nalgebra as na;
+pub(crate) use nalgebra as na;
 use nalgebra::Const;
 use plotpy::StrError;
 use rand::prelude::*;
@@ -79,7 +79,8 @@ pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
         (rho[(0, 0)] - rho[(1, 1)]).re,
     ]
 }
-fn random_vector() -> na::SVector<f64, 3> {
+
+pub fn random_vector() -> na::SVector<f64, 3> {
     let mut rng = rand::rng();
     na::Vector3::new(
         rng.random_range(-1.0..1.0),
@@ -156,13 +157,6 @@ impl From<StrError> for SolverError {
     }
 }
 
-// impl<E: std::error::Error + Send + Sync> From<DrawingAreaErrorKind<E>> for SolverError {
-//     fn from(value: DrawingAreaErrorKind<E>) -> Self {
-//         eprintln!("{}", value);
-//         Self::PlotError
-//     }
-// }
-
 pub fn check_hermiticity<D>(op: &Operator<D>) -> SolverResult<()>
 where
     D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
@@ -207,4 +201,59 @@ where
     } else {
         Err(SolverError::NotUnitaryTrace(state.trace().re))
     }
+}
+
+pub fn hamiltonian_term<D>(h: &Operator<D>, rho: &State<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    -commutator(h, rho) * na::Complex::I
+}
+
+pub fn measurement_term<D>(l: &Operator<D>, rho: &State<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    l * rho * l.adjoint() - anticommutator(&(l.adjoint() * l), rho).scale(0.5)
+}
+
+pub fn noise_term<D>(l: &Operator<D>, rho: &State<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    l * rho + rho * l.adjoint() - rho * ((l + l.adjoint()) * rho).trace()
+}
+
+pub fn corrected_hamiltonian<D>(h: &Operator<D>, l: &Operator<D>, f: &Operator<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    h + (f * l + l.adjoint() * f).scale(0.5)
+}
+
+pub fn check_qubit_feeback(h: &QubitOperator, l: &QubitOperator, f: &QubitOperator) {
+    let rhod = na::Matrix2::new(0., 0., 0., 1.).cast::<na::Complex<f64>>();
+    let comm_check = commutator(&rhod, &(l + l.adjoint()));
+    let lif = l - f * na::Complex::I;
+    let htot = h + (f * l + l.adjoint() * f).scale(0.5);
+    let ham_check = htot[(1, 0)] * na::Complex::I - 0.5 * lif[(1, 1)].conj() * lif[(1, 0)];
+
+    println!("[rhod, L + L^\\dag] = {}", comm_check);
+    println!("L - iF: {}", lif);
+    println!("H + 0.5(FL + L^\\dag F): {}", htot);
+
+    println!("lp: {}", lif[(1, 0)]);
+    println!("lq: {}", lif[(0, 1)]);
+    println!("ihp - 0.5 * ls^\\dag lp: {}", ham_check);
+
+    let feed = lif[(1, 0)] != na::Complex::ZERO
+        && lif[(0, 1)] == na::Complex::ZERO
+        && ham_check == na::Complex::ZERO
+        && comm_check != QubitOperator::zeros();
+
+    println!("Valid feedback: {feed}")
 }
