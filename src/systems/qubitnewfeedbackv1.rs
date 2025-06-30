@@ -54,7 +54,7 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedb
         let snd = self
             .lhat
             .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt);
+        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
 
         let m = id - fst + snd + thd;
 

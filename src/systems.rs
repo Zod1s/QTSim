@@ -5,3 +5,4 @@ pub mod qubitnewfeedbackv4;
 pub mod qubitsequentialcontrol;
 pub mod qubitwisemanfme;
 pub mod qubitwisemansse;
+pub mod qubitwisemanssebase;

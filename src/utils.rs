@@ -14,6 +14,8 @@ pub type BlochVector = na::SVector<f64, 3>;
 pub type QubitState = State<na::Const<2>>;
 pub type QubitOperator = Operator<na::Const<2>>;
 
+const EPSILON: f64 = 1e-10;
+
 pub const PAULI_X: QubitOperator = na::Matrix2::new(
     na::Complex::ZERO,
     na::Complex::ONE,
@@ -73,11 +75,20 @@ pub fn to_bloch(rho: &QubitState) -> SolverResult<BlochVector> {
 }
 
 pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
-    na::vector![
+    let bloch = na::vector![
         2. * rho[(0, 1)].re,
         2. * rho[(1, 0)].im,
         (rho[(0, 0)] - rho[(1, 1)]).re,
-    ]
+    ];
+    // if bloch.norm() > 1. + EPSILON {
+    //     panic!(
+    //         "Norm of given Bloch vector is larger than 1, {}",
+    //         bloch.norm()
+    //     )
+    // } else {
+    //     bloch
+    // }
+    bloch
 }
 
 pub fn random_vector() -> na::SVector<f64, 3> {

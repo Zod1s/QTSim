@@ -28,18 +28,18 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV2<'a, R> {
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
-        self.dy = self.measurement(x, dt, dw[0]);
         let hhat = self.h + self.f.scale(self.dy / dt);
         let fst = (hhat * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
         let snd = self
             .l
             .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt);
+        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
 
         let m = id - fst + snd + thd;
 
         let num = m * x * m.adjoint();
         *dx = num.scale(1. / num.trace().re) - x;
+        self.dy = self.measurement(x, dt, dw[0]);
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

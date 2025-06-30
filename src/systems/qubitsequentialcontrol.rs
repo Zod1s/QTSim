@@ -30,7 +30,7 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequenti
         let snd = self
             .l
             .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt);
+        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
 
         let m = id - fst + snd + thd;
 

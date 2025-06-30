@@ -8,17 +8,17 @@ use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
 
 pub fn wmsse() -> SolverResult<()> {
-    // let h = PAULI_Z;
-    // let l = PAULI_X;
-    // let f = PAULI_Y;
-    let h = PAULI_Z + PAULI_X;
+    let h = PAULI_Z;
     let l = PAULI_X;
-    let f = QubitOperator::new(
-        na::Complex::ZERO,
-        -na::Complex::I,
-        na::Complex::I,
-        na::Complex::new(2., 0.),
-    );
+    let f = PAULI_Y;
+    // let h = PAULI_Z + PAULI_X;
+    // let l = PAULI_X;
+    // let f = QubitOperator::new(
+    //     na::Complex::ZERO,
+    //     -na::Complex::I,
+    //     na::Complex::I,
+    //     na::Complex::new(2., 0.),
+    // );
 
     let mut rng = StdRng::seed_from_u64(0);
     let mut system = systems::qubitwisemansse::QubitWisemanSSE::new(h, l, f, &mut rng);
@@ -26,9 +26,9 @@ pub fn wmsse() -> SolverResult<()> {
     let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
     let x0bloch = to_bloch(&x0)?;
 
-    let num_tries = 10;
+    let num_tries = 0;
     let final_time: f64 = 2.0;
-    let dt = 0.001;
+    let dt = 0.0001;
 
     let mut plot = plotpy::Plot::new();
     plots::plot_bloch_sphere(&mut plot)?;
@@ -60,14 +60,14 @@ pub fn wmsse() -> SolverResult<()> {
             .map(to_bloch_unchecked)
             .collect::<Vec<BlochVector>>();
 
-        // let mut trajectory = plotpy::Curve::new();
-        // trajectory.set_line_color(colors[i as usize]).draw_3d(
-        //     &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
-        //     &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
-        //     &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
-        // );
-        //
-        // plot.add(&trajectory);
+        let mut trajectory = plotpy::Curve::new();
+        trajectory.set_line_color(colors[i as usize]).draw_3d(
+            &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
+            &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
+        );
+
+        plot.add(&trajectory);
 
         let last = obsv.last().unwrap();
         let mut end = plotpy::Curve::new();
