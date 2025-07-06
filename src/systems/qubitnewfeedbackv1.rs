@@ -8,7 +8,7 @@ pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
     l: QubitOperator,
     f0: QubitOperator,
     f1: QubitOperator,
-    hcor: QubitOperator,
+    hhat: QubitOperator,
     lhat: QubitOperator,
     y: f64,
     yd: f64,
@@ -25,16 +25,16 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
         rhod: QubitState,
         rng: &'a mut R,
     ) -> Self {
+        let hhat = h + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
-        let hcor = (f1 * l + l.adjoint() * f1).scale(0.5);
-        let yd = ((l + l.adjoint()) * rhod).trace().re;
+        let yd = ((l + l.adjoint()) * rhod).trace().re; // output we would have at the equilibrium
 
         Self {
             h,
             l,
             f0,
             f1,
-            hcor,
+            hhat,
             lhat,
             y: 0.,
             yd,
@@ -47,9 +47,10 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV1<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
+        let dy = self.measurement(x, dt, dw[0]);
+        self.y += dy;
         let corr = if t > 0. { self.y / t - self.yd } else { 0. };
-        // let corr = corr.powi(2);
-        let hhat = self.h + self.hcor + self.f0.scale(corr);
+        let hhat = self.hhat + self.f0.scale(corr);
         let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
         let snd = self
             .lhat
@@ -60,9 +61,6 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedb
 
         let num = m * x * m.adjoint();
         *dx = num.scale(1. / num.trace().re) - x;
-
-        let dy = self.measurement(x, dt, dw[0]);
-        self.y += dy;
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
