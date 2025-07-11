@@ -47,15 +47,13 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV4<'a, R> {
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV4<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+        let dy = self.measurement(x, dt, dw[0]);
+        self.y += dy;
         let corr = if t > 0. { self.y / t - self.yd } else { 0. };
-        let corr = corr.powi(2);
         let hhat = self.hhat + self.f0.scale(corr);
         let drho = (hamiltonian_term(&hhat, x) + measurement_term(&self.lhat, x)).scale(dt)
             + noise_term(&self.lhat, x).scale(dw[0]);
         *dx = drho - QubitOperator::identity() * drho.trace();
-
-        let dy = self.measurement(x, dt, dw[0]);
-        self.y += dy;
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/tempimages.py", line 87, in <module>
+    grid_a=plt.GridSpec(2,2,width_ratios=[1,1,1,1], height_ratios=[1,1,1,1])
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3/dist-packages/matplotlib/gridspec.py", line 388, in __init__
+    super().__init__(nrows, ncols,
+  File "/usr/lib/python3/dist-packages/matplotlib/gridspec.py", line 55, in __init__
+    self.set_height_ratios(height_ratios)
+  File "/usr/lib/python3/dist-packages/matplotlib/gridspec.py", line 133, in set_height_ratios
+    raise ValueError('Expected the given number of height ratios to '
+ValueError: Expected the given number of height ratios to match the number of rows of the grid
