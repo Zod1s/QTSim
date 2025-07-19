@@ -8,9 +8,11 @@ use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
 
 pub fn wmsse() -> SolverResult<()> {
-    let h = PAULI_Z;
-    let l = PAULI_X;
+    // let h = PAULI_Z;
+    // let l = PAULI_X;
     let f = PAULI_Y;
+    let h = PAULI_Z + PAULI_Y;
+    let l = PAULI_X + PAULI_Z;
     // let h = PAULI_Z + PAULI_X;
     // let l = PAULI_X;
     // let f = QubitOperator::new(
@@ -22,13 +24,13 @@ pub fn wmsse() -> SolverResult<()> {
 
     let mut rng = StdRng::seed_from_u64(0);
     let mut system = systems::qubitwisemansse::QubitWisemanSSE::new(h, l, f, &mut rng);
-    // let x0 = random_qubit_state();
-    let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
+    let x0 = random_qubit_state();
+    // let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
     let x0bloch = to_bloch(&x0)?;
 
-    let num_tries = 0;
+    let num_tries = 1;
     let final_time: f64 = 2.0;
-    let dt = 0.0001;
+    let dt = 0.001;
 
     let mut plot = plotpy::Plot::new();
     plots::plot_bloch_sphere(&mut plot)?;

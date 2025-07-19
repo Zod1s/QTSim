@@ -38,6 +38,7 @@ F1 = F1.subs(f1p, I * conjugate(lq))
 LiF = simplify(L - I * F1)
 
 corr = simplify(simplify(0.5 * (F1 * L + Dagger(L) * F1)))
+pprint(corr)
 
 Htot = H + F0 + corr
 
