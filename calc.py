@@ -3,51 +3,35 @@ from sympy.physics.quantum.dagger import Dagger
 
 init_printing(use_unicode=True)
 
-f0p, f1p, hp, ls, lp, lq, lr = symbols(
-    "f0p f1p hp ls lp lq lr", complex=True)
+fcp, f1p, hp, ls, lp, lq, lr = symbols("fcp f1p hp ls lp lq lr", complex=True)
 
-f0s, f1s, f0r, f1r, hs, hr = symbols(
-    "f0s f1s f0r f1r hs hr", real=True)
+fcs, f1s, fcr, f1r, hs, hr = symbols("fcs f1s fcr f1r hs hr", real=True)
 
-t, yt, yd = symbols("t yt yd", real=True)
+Fc = Matrix([[fcs, fcp], [conjugate(fcp), fcr]])
+F1 = Matrix([[f1s, f1p], [conjugate(f1p), f1r]])
 
-F0 = Matrix([
-    [f0s, f0p],
-    [conjugate(f0p), f0r]
-])
+paulix = Matrix([[0, 1], [1, 0]])
+pauliy = Matrix([[0, -I], [I, 0]])
+pauliz = Matrix([[1, 0], [0, -1]])
 
-F0 = (yt - yd * t) * F0 / t
+H = pauliz
+L = pauliz + 0.5 * paulix
+H = paulix * H * paulix
+L = paulix * L * paulix
 
-F1 = Matrix([
-    [f1s, f1p],
-    [conjugate(f1p), f1r]
-])
+pprint(H)
+pprint(L)
 
-L = Matrix([
-    [ls, lp],
-    [lq, lr]
-])
-
-H = Matrix([
-    [hs, hp],
-    [conjugate(hp), hr]
-])
-
-F1 = F1.subs(f1p, I * conjugate(lq))
+F1 = F1.subs(f1p, I * conjugate(L[1, 0]))
 
 LiF = simplify(L - I * F1)
 
 corr = simplify(simplify(0.5 * (F1 * L + Dagger(L) * F1)))
+pprint(F1)
+pprint(LiF)
 pprint(corr)
 
-Htot = H + F0 + corr
-
-# pprint(F0)
-# pprint(F1)
-# pprint(H + F0)
-# pprint(LiF)
-# pprint(corr)
-# pprint(Htot)
+Htot = simplify(H + corr + Fc)
 
 Htotp = Htot[0, 1]
 Ls = LiF[0, 0]
@@ -57,18 +41,68 @@ eq = I * Htotp - 0.5 * conjugate(Ls) * Lp
 eq = simplify(eq)
 pprint(eq)
 
-reeq = re(eq)
-imeq = im(eq)
-# pprint(reeq)
-# pprint(imeq)
+# x, y = symbols("x y", real=True)
+# f = atan(y / x)
+# g = simplify(Matrix([f]).jacobian([x, y]))
+# h = simplify(g.T.jacobian([x, y]))
+# dzdz = Matrix(
+#     [
+#         [x**2, x * y],
+#         [x * y, y**2],
+#     ]
+# )
 
-reeqnew = reeq.subs({
-    ls: 0, lp: 1, lq: 1, lr: 0, hp: 0
-})
+# f = sqrt(x**2 + y**2)
+# g = simplify(Matrix([f]).jacobian([x, y]))
+# h = simplify(g.T.jacobian([x, y]))
+# pprint(f)
+# pprint(g)
+# pprint(h)
+# pprint(dzdz)
+# pprint(simplify(h * dzdz))
 
-imeqnew = imeq.subs({
-    ls: 0, lp: 1, lq: 1, lr: 0, hp: 0
-})
+# a, b, c, d = symbols("a b c d", real=True)
+# nx, ny, nz = symbols("nx ny nz", real=True)
+#
+# paulix = Matrix([[0, 1], [1, 0]])
+# pauliy = Matrix([[0, -I], [I, 0]])
+# pauliz = Matrix([[1, 0], [0, -1]])
+#
+# rho = 0.5 * (eye(2) + nx * paulix + ny * pauliy + nz * pauliz)
+# H0 = a * eye(2) + b * pauliz
+# L = c * eye(2) + d * pauliz
+#
+# ham = simplify(-I * (H0 * rho - rho * H0))
+# lrhol = simplify(L * rho * Dagger(L))
+# llrho = simplify(Dagger(L) * L * rho + rho * Dagger(L) * L)
 
-pprint(reeqnew)
-pprint(imeqnew)
+# pprint(ham)
+# pprint(lrhol)
+# pprint(llrho)
+# pprint(simplify(ham + lrhol - 0.5 * llrho))
+#
+# g = L * rho + rho * Dagger(L) - Trace((L + Dagger(L)) * rho) * rho
+# g = simplify(g)
+# pprint(simplify(g))
+
+# rho0 = Matrix([[1, 0], [0, 0]])
+# rho1 = Matrix([[0, 0], [0, 1]])
+
+# lv0 = Trace(
+#     I * (H0 * rho - rho * H0) * rho0
+#     - L * rho * Dagger(L) * rho0
+#     + 0.5 * (Dagger(L) * L * rho + rho * Dagger(L) * L) * rho0
+# )
+#
+# lv0 = simplify(simplify(lv0))
+#
+# lv1 = Trace(
+#     I * (H0 * rho - rho * H0) * rho1
+#     - L * rho * Dagger(L) * rho1
+#     + 0.5 * (Dagger(L) * L * rho + rho * Dagger(L) * L) * rho1
+# )
+#
+# lv1 = simplify(simplify(lv1))
+#
+# pprint(lv0)
+# pprint(lv1)

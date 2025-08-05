@@ -9,8 +9,10 @@ use rand_distr::num_traits::ToPrimitive;
 
 pub fn wmfme() -> SolverResult<()> {
     let h = PAULI_Z;
-    let l = PAULI_X;
-    let f = PAULI_Y;
+    let l = PAULI_Z;
+    let f = QubitOperator::zeros();
+    // let l = PAULI_X;
+    // let f = PAULI_Y;
     let system = systems::qubitwisemanfme::QubitWisemanFME::new(h, l, f);
 
     let mut plot = plotpy::Plot::new();
@@ -22,9 +24,11 @@ pub fn wmfme() -> SolverResult<()> {
     ];
 
     for i in 0..10 {
+        // let x0 = random_pure_state();
         let x0 = random_qubit_state();
+        // let x0 = na::Matrix2::new(1., 0., 0., 0.).cast();
 
-        let mut solver = Rk4::new(system, 0.0, x0, 4.0, 0.001);
+        let mut solver = Rk4::new(system, 0.0, x0, 20.0, 0.001);
         solver.integrate()?;
 
         let (_, rho_out) = solver.results().get();
@@ -55,7 +59,7 @@ pub fn wmfme() -> SolverResult<()> {
         plot.add(&start);
     }
 
-    plot.show("tempimages")?;
+    plot.set_equal_axes(true).show("tempimages")?;
 
     Ok(())
 }

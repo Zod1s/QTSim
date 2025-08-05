@@ -3,14 +3,19 @@ use nalgebra as na;
 
 pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     let mut sphere = plotpy::Surface::new();
+    let spherecolor = "#00000020";
+    let curvecolor = "#000000";
+    let pointcolor = "#000000";
+    let textcolor = "#000000";
+
     sphere
-        .set_surf_color("#00000020")
+        .set_surf_color(spherecolor)
         .draw_sphere(&[0.0, 0.0, 0.0], 1.0, 40, 40)?;
 
     let mut xcurve = plotpy::Curve::new();
     xcurve
         .set_line_width(2.0)
-        .set_line_color("#000000")
+        .set_line_color(curvecolor)
         .points_3d_begin()
         .points_3d_add(-1.0, 0.0, 0.0)
         .points_3d_add(1.0, 0.0, 0.0)
@@ -19,7 +24,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     let mut ycurve = plotpy::Curve::new();
     ycurve
         .set_line_width(2.0)
-        .set_line_color("#000000")
+        .set_line_color(curvecolor)
         .points_3d_begin()
         .points_3d_add(0.0, -1.0, 0.0)
         .points_3d_add(0.0, 1.0, 0.0)
@@ -28,7 +33,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     let mut zcurve = plotpy::Curve::new();
     zcurve
         .set_line_width(2.0)
-        .set_line_color("#000000")
+        .set_line_color(curvecolor)
         .points_3d_begin()
         .points_3d_add(0.0, 0.0, -1.0)
         .points_3d_add(0.0, 0.0, 1.0)
@@ -38,7 +43,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     xsign
         .set_line_width(5.0)
         .set_marker_style("o")
-        .set_line_color("#0000ff")
+        .set_line_color(pointcolor)
         .points_3d_begin()
         .points_3d_add(1.0, 0.0, 0.0)
         .points_3d_end();
@@ -47,7 +52,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     ysign
         .set_line_width(5.0)
         .set_marker_style("o")
-        .set_line_color("#0000ff")
+        .set_line_color(pointcolor)
         .points_3d_begin()
         .points_3d_add(0.0, 1.0, 0.0)
         .points_3d_end();
@@ -56,14 +61,14 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     zsign
         .set_line_width(5.0)
         .set_marker_style("o")
-        .set_line_color("#0000ff")
+        .set_line_color(pointcolor)
         .points_3d_begin()
         .points_3d_add(0.0, 0.0, 1.0)
         .points_3d_end();
 
     let mut xtext = plotpy::Text::new();
     xtext
-        .set_color("#0000ff")
+        .set_color(textcolor)
         .set_align_vertical("center")
         .set_align_horizontal("center")
         .set_fontsize(20.0)
@@ -72,7 +77,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
 
     let mut ytext = plotpy::Text::new();
     ytext
-        .set_color("#0000ff")
+        .set_color(textcolor)
         .set_align_vertical("center")
         .set_align_horizontal("center")
         .set_fontsize(20.0)
@@ -81,7 +86,7 @@ pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
 
     let mut ztext = plotpy::Text::new();
     ztext
-        .set_color("#0000ff")
+        .set_color(textcolor)
         .set_align_vertical("center")
         .set_align_horizontal("center")
         .set_fontsize(20.0)

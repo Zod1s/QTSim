@@ -109,6 +109,15 @@ pub fn random_bloch() -> BlochVector {
     }
 }
 
+pub fn random_pure_vector() -> BlochVector {
+    let vec = random_vector();
+    vec.normalize()
+}
+
+pub fn random_pure_state() -> QubitState {
+    from_bloch_unchecked(&random_pure_vector())
+}
+
 pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
     if bloch.norm() > 1. {
         Err(SolverError::BlochNormError(bloch.norm()))
@@ -119,6 +128,14 @@ pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
             + PAULI_Z.scale(bloch[2]))
         .scale(0.5))
     }
+}
+
+pub fn from_bloch_unchecked(bloch: &BlochVector) -> QubitState {
+    (QubitOperator::identity()
+        + PAULI_X.scale(bloch[0])
+        + PAULI_Y.scale(bloch[1])
+        + PAULI_Z.scale(bloch[2]))
+    .scale(0.5)
 }
 
 pub fn random_qubit_state() -> QubitState {

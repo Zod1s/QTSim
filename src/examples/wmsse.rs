@@ -10,9 +10,12 @@ use rand_distr::num_traits::ToPrimitive;
 pub fn wmsse() -> SolverResult<()> {
     // let h = PAULI_Z;
     // let l = PAULI_X;
-    let f = PAULI_Y;
-    let h = PAULI_Z + PAULI_Y;
-    let l = PAULI_X + PAULI_Z;
+    // let f = PAULI_Y;
+    let h = PAULI_Z + PAULI_Y.scale(0.30);
+    let l = PAULI_Z + PAULI_X.scale(0.30);
+    let f = PAULI_Y.scale(0.30);
+    // let h = PAULI_Z + PAULI_Y;
+    // let l = PAULI_X + PAULI_Z;
     // let h = PAULI_Z + PAULI_X;
     // let l = PAULI_X;
     // let f = QubitOperator::new(
@@ -22,20 +25,22 @@ pub fn wmsse() -> SolverResult<()> {
     //     na::Complex::new(2., 0.),
     // );
 
-    let mut rng = StdRng::seed_from_u64(0);
+    // let mut rng = StdRng::seed_from_u64(0);
+    let mut rng = rand::rng();
     let mut system = systems::qubitwisemansse::QubitWisemanSSE::new(h, l, f, &mut rng);
-    let x0 = random_qubit_state();
-    // let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
+    // let x0 = random_qubit_state();
+    let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast::<na::Complex<f64>>();
+    // let x0 = random_pure_state();
     let x0bloch = to_bloch(&x0)?;
 
-    let num_tries = 1;
-    let final_time: f64 = 2.0;
+    let num_tries = 10;
+    let final_time = 30.;
     let dt = 0.001;
 
     let mut plot = plotpy::Plot::new();
     plots::plot_bloch_sphere(&mut plot)?;
 
-    // let mut plot2 = plotpy::Plot::new();
+    let mut plot2 = plotpy::Plot::new();
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -55,7 +60,7 @@ pub fn wmsse() -> SolverResult<()> {
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
         solver.integrate()?;
 
-        let (_, rho_out, _) = solver.results().get();
+        let (t_out, rho_out, _) = solver.results().get();
 
         let obsv = rho_out
             .iter()
@@ -93,6 +98,12 @@ pub fn wmsse() -> SolverResult<()> {
         // let mut y = plotpy::Curve::new();
         // y.set_line_color(colors[i as usize]).draw(t_out, &y_out);
         // plot2.add(&y);
+        let mut zaxis = plotpy::Curve::new();
+        zaxis
+            .set_line_color(colors[i as usize])
+            .draw(t_out, &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>());
+
+        plot2.add(&zaxis);
 
         // mean_traj = mean_traj
         //     .iter()
@@ -122,31 +133,31 @@ pub fn wmsse() -> SolverResult<()> {
     //
     // plot.add(&mean_curve);
 
-    let system = systems::qubitwisemanfme::QubitWisemanFME::new(h, l, f);
-    let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
-    solver.integrate()?;
-
-    let (_, rho_out) = solver.results().get();
-
-    let obsv = rho_out
-        .iter()
-        .map(to_bloch_unchecked)
-        .collect::<Vec<BlochVector>>();
-
-    let mut trajectory = plotpy::Curve::new();
-    trajectory
-        .set_line_color("#000000")
-        .set_line_width(2.0)
-        .draw_3d(
-            &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
-            &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
-            &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
-        );
-
-    plot.add(&trajectory);
+    // let system = systems::qubitwisemanfme::QubitWisemanFME::new(h, l, f);
+    // let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
+    // solver.integrate()?;
+    //
+    // let (_, rho_out) = solver.results().get();
+    //
+    // let obsv = rho_out
+    //     .iter()
+    //     .map(to_bloch_unchecked)
+    //     .collect::<Vec<BlochVector>>();
+    //
+    // let mut trajectory = plotpy::Curve::new();
+    // trajectory
+    //     .set_line_color("#000000")
+    //     .set_line_width(2.0)
+    //     .draw_3d(
+    //         &obsv.iter().map(|o| o[0]).collect::<Vec<f64>>(),
+    //         &obsv.iter().map(|o| o[1]).collect::<Vec<f64>>(),
+    //         &obsv.iter().map(|o| o[2]).collect::<Vec<f64>>(),
+    //     );
+    //
+    // plot.add(&trajectory);
 
     plot.set_equal_axes(true).show("tempimages")?;
-    // plot2.set_equal_axes(true).show("tempimages")?;
+    plot2.show("tempimages")?;
 
     Ok(())
 }

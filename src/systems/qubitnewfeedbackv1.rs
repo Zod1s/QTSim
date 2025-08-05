@@ -1,6 +1,7 @@
 use crate::solver::{StochasticSystem, System};
 use crate::utils::*;
 use crate::wiener;
+use statrs::distribution::{ContinuousCDF, Normal};
 
 #[derive(Debug)]
 pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
@@ -11,7 +12,11 @@ pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
     hhat: QubitOperator,
     lhat: QubitOperator,
     y: f64,
-    yd: f64,
+    y0: f64,
+    y1: f64,
+    lb: f64,
+    ub: f64,
+    pub tf: f64,
     rng: &'a mut R,
     wiener: wiener::Wiener,
 }
@@ -22,12 +27,19 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
         l: QubitOperator,
         f0: QubitOperator,
         f1: QubitOperator,
-        rhod: QubitState,
+        y0: f64,
+        y1: f64,
+        lb: f64,
+        ub: f64,
+        alpha: f64,
         rng: &'a mut R,
     ) -> Self {
+        let normal = Normal::standard();
+        let epsilon = (y0 - y1).abs() / 4.;
+        let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
+        let tf = 0.;
         let hhat = h + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
-        let yd = ((l + l.adjoint()) * rhod).trace().re; // output we would have at the equilibrium
 
         Self {
             h,
@@ -37,8 +49,12 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
             hhat,
             lhat,
             y: 0.,
-            yd,
+            y0,
+            y1,
             rng,
+            lb: (y0 - y1).abs() * lb,
+            ub: (y0 - y1).abs() * ub,
+            tf,
             wiener: wiener::Wiener::new(),
         }
     }
@@ -46,10 +62,17 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV1<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+        let avg = if t > self.tf { self.y / t } else { 0. };
+        let corr = if avg.abs() > self.ub
+            || (avg - self.y0).abs() > (avg - self.y1).abs()
+            || t < self.tf
+        {
+            0.
+        } else {
+            -(avg - self.y1).abs()
+        };
+
         let id = QubitOperator::identity();
-        let dy = self.measurement(x, dt, dw[0]);
-        self.y += dy;
-        let corr = if t > 0. { self.y / t - self.yd } else { 0. };
         let hhat = self.hhat + self.f0.scale(corr);
         let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
         let snd = self
@@ -61,6 +84,8 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedb
 
         let num = m * x * m.adjoint();
         *dx = num.scale(1. / num.trace().re) - x;
+        let dy = self.measurement(x, dt, dw[0]);
+        self.y += dy;
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
