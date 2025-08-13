@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/tempimages.py", line 89, in <module>
+    plt.plot(x,y,label=r'Number of converged trajectories: 9')
+  File "/home/lore/.local/lib/python3.10/site-packages/matplotlib/pyplot.py", line 3838, in plot
+    return gca().plot(
+  File "/home/lore/.local/lib/python3.10/site-packages/matplotlib/axes/_axes.py", line 1777, in plot
+    lines = [*self._get_lines(self, *args, data=data, **kwargs)]
+  File "/home/lore/.local/lib/python3.10/site-packages/matplotlib/axes/_base.py", line 297, in __call__
+    yield from self._plot_args(
+  File "/home/lore/.local/lib/python3.10/site-packages/matplotlib/axes/_base.py", line 494, in _plot_args
+    raise ValueError(f"x and y must have same first dimension, but "
+ValueError: x and y must have same first dimension, but have shapes (100001,) and (100000,)
