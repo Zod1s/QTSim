@@ -37,7 +37,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
         let normal = Normal::standard();
         let epsilon = (y0 - y1).abs() / 4.;
         let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
-        let tf = 0.;
+        // let tf = 0.;
         let hhat = h + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
 
@@ -63,14 +63,16 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV1<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let avg = if t > self.tf { self.y / t } else { 0. };
-        let corr = if avg.abs() > self.ub
-            || (avg - self.y0).abs() > (avg - self.y1).abs()
-            || t < self.tf
-        {
-            0.
-        } else {
-            -(avg - self.y1).abs()
-        };
+        let corr =
+            if avg.abs() > self.ub || (avg - self.y0).abs() > (avg - self.y1).abs() || t <= self.tf
+            {
+                0.
+            } else if (avg - self.y0).abs() < self.lb {
+                avg - self.y1
+                // -(avg - self.y1).abs()
+            } else {
+                0.
+            };
 
         let id = QubitOperator::identity();
         let hhat = self.hhat + self.f0.scale(corr);

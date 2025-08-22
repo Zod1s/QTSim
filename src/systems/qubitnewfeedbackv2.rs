@@ -3,7 +3,7 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
-pub struct QubitNewFeedbackV2<'a, R: wiener::Rng + ?Sized> {
+pub struct QubitNotPhysicalV1<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
     f: QubitOperator,
@@ -12,7 +12,7 @@ pub struct QubitNewFeedbackV2<'a, R: wiener::Rng + ?Sized> {
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV2<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalV1<'a, R> {
     pub fn new(h: QubitOperator, l: QubitOperator, f: QubitOperator, rng: &'a mut R) -> Self {
         Self {
             h,
@@ -25,7 +25,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV2<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV2<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysicalV1<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
         let hhat = self.h + self.f.scale(self.dy / dt);

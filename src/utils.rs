@@ -115,7 +115,7 @@ pub fn random_pure_vector() -> BlochVector {
 }
 
 pub fn random_pure_state() -> QubitState {
-    from_bloch_unchecked(&random_pure_vector())
+    from_bloch(&random_pure_vector()).expect("It should already have norm 1")
 }
 
 pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
