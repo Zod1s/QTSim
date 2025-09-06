@@ -8,5 +8,5 @@ mod utils;
 mod wiener;
 
 fn main() -> utils::SolverResult<()> {
-    examples::newfeedback::newfeedback()
+    examples::multilevel::multilevel()
 }

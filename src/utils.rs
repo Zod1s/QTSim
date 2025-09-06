@@ -91,7 +91,18 @@ pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
     bloch
 }
 
-pub fn random_vector() -> na::SVector<f64, 3> {
+pub fn random_complex_vector<const D: usize>() -> na::SVector<na::Complex<f64>, D> {
+    let mut rng = rand::rng();
+    na::SVector::from_fn(|_, _| {
+        na::Complex::new(rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0))
+    })
+}
+
+pub fn random_unit_complex_vector<const D: usize>() -> na::SVector<na::Complex<f64>, D> {
+    random_complex_vector::<D>().normalize()
+}
+
+pub fn random_vector_3() -> na::SVector<f64, 3> {
     let mut rng = rand::rng();
     na::Vector3::new(
         rng.random_range(-1.0..1.0),
@@ -100,22 +111,22 @@ pub fn random_vector() -> na::SVector<f64, 3> {
     )
 }
 
-pub fn random_bloch() -> BlochVector {
+pub fn random_blochvector() -> BlochVector {
     loop {
-        let vec = random_vector();
+        let vec = random_vector_3();
         if vec.norm() <= 1. {
             return vec;
         }
     }
 }
 
-pub fn random_pure_vector() -> BlochVector {
-    let vec = random_vector();
+pub fn random_pure_blochvector() -> BlochVector {
+    let vec = random_vector_3();
     vec.normalize()
 }
 
-pub fn random_pure_state() -> QubitState {
-    from_bloch(&random_pure_vector()).expect("It should already have norm 1")
+pub fn random_pure_qubitstate() -> QubitState {
+    from_bloch(&random_pure_blochvector()).expect("It should already have norm 1")
 }
 
 pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
@@ -139,7 +150,7 @@ pub fn from_bloch_unchecked(bloch: &BlochVector) -> QubitState {
 }
 
 pub fn random_qubit_state() -> QubitState {
-    from_bloch(&random_bloch())
+    from_bloch(&random_blochvector())
         .expect("Cannot have norm larger than 1 by construction, this should never fail")
 }
 

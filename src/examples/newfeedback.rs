@@ -40,7 +40,7 @@ pub fn newfeedback() -> SolverResult<()> {
     let x0bloch = to_bloch(&x0)?;
 
     let num_tries = 10;
-    let final_time: f64 = 10.0;
+    let final_time = 10.0;
     let dt = 0.0001;
 
     let colors = [
