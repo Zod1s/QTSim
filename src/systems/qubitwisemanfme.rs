@@ -3,6 +3,7 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Clone, Copy, Debug)]
+/// Lindblad with Wiseman-Milburn feedback for qubits
 pub struct QubitWisemanFME {
     hhat: QubitOperator,
     lhat: QubitOperator,

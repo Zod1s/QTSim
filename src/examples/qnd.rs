@@ -60,10 +60,20 @@ pub fn qnd() -> SolverResult<()> {
 
     for i in 0..num_tries {
         bar.inc(1);
-        let mut system = systems::qubitnewfeedbackv1::QubitNewFeedbackV1::new(
-            h, l, f0, f1, y0, y1, lb, ub, alpha, &mut rng,
+        let mut system = systems::qubitcompletefeedback::QubitFeedback::new(
+            h,
+            l,
+            QubitOperator::zeros(),
+            f0,
+            f1,
+            y0,
+            y1,
+            lb,
+            ub,
+            alpha,
+            &mut rng,
         );
-        let tf = system.tf;
+        let tf = system.tf();
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
         solver.integrate()?;

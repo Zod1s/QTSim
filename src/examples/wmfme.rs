@@ -1,11 +1,8 @@
 use crate::plots;
-use crate::solver::{Rk4, StochasticSolver};
+use crate::solver::Rk4;
 use crate::systems;
 use crate::utils::*;
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::rngs::StdRng;
-use rand::SeedableRng;
-use rand_distr::num_traits::ToPrimitive;
 
 pub fn wmfme() -> SolverResult<()> {
     let h = PAULI_Z;
@@ -16,7 +13,7 @@ pub fn wmfme() -> SolverResult<()> {
     let system = systems::qubitwisemanfme::QubitWisemanFME::new(h, l, f);
 
     let mut plot = plotpy::Plot::new();
-    plots::plot_bloch_sphere(&mut plot);
+    plots::plot_bloch_sphere(&mut plot)?;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",

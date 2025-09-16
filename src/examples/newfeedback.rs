@@ -28,7 +28,8 @@ pub fn newfeedback() -> SolverResult<()> {
     //     na::Complex::new(2., 0.),
     // );
 
-    let h = -PAULI_Z - PAULI_Y.scale(1.0);
+    let h = -PAULI_Z;
+    let hc = -PAULI_Y.scale(1.0);
     let l = -PAULI_Z + PAULI_X.scale(1.0);
     let f0 = QubitOperator::zeros();
     // let f0 = PAULI_X;
@@ -67,8 +68,8 @@ pub fn newfeedback() -> SolverResult<()> {
         // bar.inc(1);
         // let mut rng = StdRng::seed_from_u64(0);
         let mut rng = rand::rng();
-        let mut system = systems::qubitnewfeedbackv1::QubitNewFeedbackV1::new(
-            h, l, f0, f1, y0, y1, lb, ub, alpha, &mut rng,
+        let mut system = systems::qubitcompletefeedback::QubitFeedback::new(
+            h, l, hc, f0, f1, y0, y1, lb, ub, alpha, &mut rng,
         );
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);

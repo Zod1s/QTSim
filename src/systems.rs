@@ -1,10 +1,9 @@
-pub mod qubitnewfeedbackv1;
-pub mod qubitnewfeedbackv2;
-pub mod qubitnewfeedbackv3;
-pub mod qubitnewfeedbackv4;
-pub mod qubitnewfeedbackv5;
-pub mod qubitnewfeedbackv6;
-pub mod qubitnewfeedbackv7;
+pub mod idealmultilevelcompletefeedback;
+pub mod idealqubitcompletefeedback;
+pub mod multilevelcompletefeedback;
+pub mod qubitcompletefeedback;
+pub mod qubitnonphysical;
+pub mod qubitnonphysicalrouchon;
 pub mod qubitsequentialcontrol;
 pub mod qubitwisemanfme;
 pub mod qubitwisemansse;

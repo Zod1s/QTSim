@@ -3,7 +3,8 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
-pub struct QubitNotPhysicalV2<'a, R: wiener::Rng + ?Sized> {
+/// Nonphysical evolution with H_c and F1 for a qubit using Euler-Maruyama integration
+pub struct QubitNotPhysical<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
     f: QubitOperator,
@@ -12,10 +13,16 @@ pub struct QubitNotPhysicalV2<'a, R: wiener::Rng + ?Sized> {
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalV2<'a, R> {
-    pub fn new(h: QubitOperator, l: QubitOperator, f: QubitOperator, rng: &'a mut R) -> Self {
+impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysical<'a, R> {
+    pub fn new(
+        h: QubitOperator,
+        l: QubitOperator,
+        hc: QubitOperator,
+        f: QubitOperator,
+        rng: &'a mut R,
+    ) -> Self {
         Self {
-            h,
+            h: h + hc,
             l,
             f,
             dy: 0.,
@@ -25,7 +32,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalV2<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysicalV2<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysical<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let drho = (hamiltonian_term(&(self.h + self.f.scale(self.dy / dt)), x)
             + measurement_term(&self.l, x)

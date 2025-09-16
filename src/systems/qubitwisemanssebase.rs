@@ -1,8 +1,9 @@
-use crate::solver::{StochasticSystem, System};
+use crate::solver::StochasticSystem;
 use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
+/// Naive discretisation of the SDE associated with the system for qubits
 pub struct QubitWisemanSSE<'a, R: wiener::Rng + ?Sized> {
     l: QubitOperator,
     hhat: QubitOperator,

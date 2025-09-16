@@ -3,6 +3,8 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
+/// Rouchon discretisation of the Wiseman-Milburn feedback for qubits with control applied after
+/// evolution
 pub struct QubitSequentialControl<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,

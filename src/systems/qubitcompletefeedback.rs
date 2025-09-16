@@ -1,14 +1,14 @@
-use crate::solver::{StochasticSystem, System};
+use crate::solver::StochasticSystem;
 use crate::utils::*;
 use crate::wiener;
 use statrs::distribution::{ContinuousCDF, Normal};
 
 #[derive(Debug)]
-pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
+/// New feedback with both F0 and F1 for qubits
+pub struct QubitFeedback<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
     f0: QubitOperator,
-    f1: QubitOperator,
     hhat: QubitOperator,
     lhat: QubitOperator,
     y: f64,
@@ -16,15 +16,16 @@ pub struct QubitNewFeedbackV1<'a, R: wiener::Rng + ?Sized> {
     y1: f64,
     lb: f64,
     ub: f64,
-    pub tf: f64,
+    tf: f64,
     rng: &'a mut R,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
     pub fn new(
         h: QubitOperator,
         l: QubitOperator,
+        hc: QubitOperator,
         f0: QubitOperator,
         f1: QubitOperator,
         y0: f64,
@@ -38,14 +39,13 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
         let epsilon = (y0 - y1).abs() / 4.;
         let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
         // let tf = 0.;
-        let hhat = h + (f1 * l + l.adjoint() * f1).scale(0.5);
+        let hhat = h + hc + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
 
         Self {
             h,
             l,
             f0,
-            f1,
             hhat,
             lhat,
             y: 0.,
@@ -58,9 +58,12 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNewFeedbackV1<'a, R> {
             wiener: wiener::Wiener::new(),
         }
     }
+    pub fn tf(&self) -> f64 {
+        self.tf
+    }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNewFeedbackV1<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let avg = if t > self.tf { self.y / t } else { 0. };
         let corr =

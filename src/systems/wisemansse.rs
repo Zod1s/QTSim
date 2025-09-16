@@ -3,6 +3,7 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
+/// Rouchon discretisation of the Wiseman-Milburn feedback for multilevel systems
 pub struct WisemanSSE<
     'a,
     R: wiener::Rng + ?Sized,

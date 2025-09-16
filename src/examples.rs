@@ -1,4 +1,5 @@
 pub mod comparison;
+pub mod idealfeed;
 pub mod multilevel;
 pub mod newfeedback;
 pub mod output;

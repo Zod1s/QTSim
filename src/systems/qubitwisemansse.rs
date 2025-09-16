@@ -3,6 +3,7 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
+/// Rouchon discretisation of the SDE with Wiseman-Milburn feedback for qubits
 pub struct QubitWisemanSSE<'a, R: wiener::Rng + ?Sized> {
     l: QubitOperator,
     hhat: QubitOperator,

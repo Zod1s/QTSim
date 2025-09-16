@@ -1,8 +1,10 @@
 pub(crate) use nalgebra as na;
-use nalgebra::Const;
 use plotpy::StrError;
 use rand::prelude::*;
-use std::ops::{Add, Mul, Sub};
+use std::{
+    num::ParseIntError,
+    ops::{Add, Mul, Sub},
+};
 use thiserror::Error;
 
 type TMul<T> = <T as Mul>::Output;
@@ -14,7 +16,7 @@ pub type BlochVector = na::SVector<f64, 3>;
 pub type QubitState = State<na::Const<2>>;
 pub type QubitOperator = Operator<na::Const<2>>;
 
-const EPSILON: f64 = 1e-10;
+// const EPSILON: f64 = 1e-10;
 
 pub const PAULI_X: QubitOperator = na::Matrix2::new(
     na::Complex::ZERO,
@@ -53,7 +55,7 @@ where
     a * b + b * a
 }
 
-pub fn delta<A: Eq>(x: &A, y: &A) -> f64 {
+pub fn kroneckerdelta<A: Eq>(x: &A, y: &A) -> f64 {
     if x == y {
         1.
     } else {
@@ -80,14 +82,6 @@ pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
         2. * rho[(1, 0)].im,
         (rho[(0, 0)] - rho[(1, 1)]).re,
     ];
-    // if bloch.norm() > 1. + EPSILON {
-    //     panic!(
-    //         "Norm of given Bloch vector is larger than 1, {}",
-    //         bloch.norm()
-    //     )
-    // } else {
-    //     bloch
-    // }
     bloch
 }
 

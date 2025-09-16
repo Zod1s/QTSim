@@ -1,5 +1,4 @@
 use crate::utils::SolverResult;
-use nalgebra as na;
 
 pub fn plot_bloch_sphere(plot: &mut plotpy::Plot) -> SolverResult<()> {
     let mut sphere = plotpy::Surface::new();

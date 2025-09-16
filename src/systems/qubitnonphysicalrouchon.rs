@@ -3,7 +3,8 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Debug)]
-pub struct QubitNotPhysicalV1<'a, R: wiener::Rng + ?Sized> {
+/// Nonphysical evolution with H_c and F1 for a qubit using Rouchon integration
+pub struct QubitNotPhysicalRouchon<'a, R: wiener::Rng + ?Sized> {
     h: QubitOperator,
     l: QubitOperator,
     f: QubitOperator,
@@ -12,10 +13,16 @@ pub struct QubitNotPhysicalV1<'a, R: wiener::Rng + ?Sized> {
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalV1<'a, R> {
-    pub fn new(h: QubitOperator, l: QubitOperator, f: QubitOperator, rng: &'a mut R) -> Self {
+impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalRouchon<'a, R> {
+    pub fn new(
+        h: QubitOperator,
+        l: QubitOperator,
+        hc: QubitOperator,
+        f: QubitOperator,
+        rng: &'a mut R,
+    ) -> Self {
         Self {
-            h,
+            h: h + hc,
             l,
             f,
             dy: 0.,
@@ -25,7 +32,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalV1<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysicalV1<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysicalRouchon<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let id = QubitOperator::identity();
         let hhat = self.h + self.f.scale(self.dy / dt);

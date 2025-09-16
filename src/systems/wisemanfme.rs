@@ -3,6 +3,7 @@ use crate::utils::*;
 use crate::wiener;
 
 #[derive(Clone, Copy, Debug)]
+/// Lindblad discretisation with Wiseman-Milburn feedback for multilevel systems
 pub struct WisemanFME<D: na::Dim>
 where
     D: Sized + std::marker::Copy,

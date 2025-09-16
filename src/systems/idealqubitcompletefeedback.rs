@@ -1,0 +1,80 @@
+use crate::solver::StochasticSystem;
+use crate::utils::*;
+use crate::wiener;
+
+#[derive(Debug)]
+/// New feedback with both F0 and F1 for qubits, using the ideal yt
+pub struct QubitFeedback<'a, R: wiener::Rng + ?Sized> {
+    h: QubitOperator,
+    l: QubitOperator,
+    f0: QubitOperator,
+    hhat: QubitOperator,
+    lhat: QubitOperator,
+    y1: f64,
+    y2: f64,
+    ub: f64,
+    rng: &'a mut R,
+    wiener: wiener::Wiener,
+}
+
+impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
+    pub fn new(
+        h: QubitOperator,
+        l: QubitOperator,
+        hc: QubitOperator,
+        f0: QubitOperator,
+        f1: QubitOperator,
+        y1: f64,
+        y2: f64,
+        gamma: f64,
+        rng: &'a mut R,
+    ) -> Self {
+        let hhat = h + hc + (f1 * l + l.adjoint() * f1).scale(0.5);
+        let lhat = l - f1 * na::Complex::I;
+
+        Self {
+            h,
+            l,
+            f0,
+            hhat,
+            lhat,
+            y1,
+            y2,
+            rng,
+            ub: (y1 - y2).abs() * gamma,
+            wiener: wiener::Wiener::new(),
+        }
+    }
+}
+
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
+    fn system(&mut self, t: f64, dt: f64, rho: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+        let y = ((self.l + self.l.adjoint()) * rho).trace().re;
+        let corr = if (y - self.y2).abs() < self.ub {
+            1.
+        } else {
+            0.
+        };
+
+        let id = QubitOperator::identity();
+        let hhat = self.hhat + self.f0.scale(corr);
+        let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
+        let snd = self
+            .lhat
+            .scale((self.lhat * rho + rho * self.lhat.adjoint()).trace().re * dt + dw[0]);
+        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
+
+        let m = id - fst + snd + thd;
+
+        let num = m * rho * m.adjoint();
+        *dx = num.scale(1. / num.trace().re) - rho;
+    }
+
+    fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
+        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+    }
+
+    fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
+        (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+}
