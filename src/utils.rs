@@ -39,6 +39,13 @@ pub const PAULI_Z: QubitOperator = na::Matrix2::new(
     na::Complex::new(-1.0, 0.0),
 );
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LastSet {
+    NotSet,
+    LeGammaSet,
+    GeGamma2Set,
+}
+
 pub fn commutator<'c, T>(a: &'c T, b: &'c T) -> <TMul<&'c T> as Sub>::Output
 where
     &'c T: Mul,

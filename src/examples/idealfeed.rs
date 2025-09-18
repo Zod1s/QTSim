@@ -11,21 +11,27 @@ use rand_distr::num_traits::ToPrimitive;
 pub fn qnd() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
-    let h = -PAULI_Z;
+    // let h = -PAULI_Z;
+    // let f0 = PAULI_X;
+    //
+    // let l1 = -PAULI_Z + PAULI_X;
+    // let hc1 = -PAULI_Y;
+    // let f11 = -PAULI_Y;
+    //
+    // let l2 = -PAULI_Z + PAULI_X.scale(0.1);
+    // let hc2 = -PAULI_Y.scale(0.1);
+    // let f12 = -PAULI_Y.scale(0.1);
+
+    let h = PAULI_Z;
+    let hc = QubitOperator::zeros();
+    let l = PAULI_Z;
     let f0 = PAULI_X;
-
-    let l1 = -PAULI_Z + PAULI_X;
-    let hc1 = -PAULI_Y;
-    let f11 = -PAULI_Y;
-
-    let l2 = -PAULI_Z + PAULI_X.scale(0.1);
-    let hc2 = -PAULI_Y.scale(0.1);
-    let f12 = -PAULI_Y.scale(0.1);
+    let f1 = QubitOperator::zeros();
 
     let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
     let rho2 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
-    let y1 = ((l1 + l1.adjoint()) * rho1).trace().re;
-    let y2 = ((l1 + l1.adjoint()) * rho2).trace().re;
+    let y1 = ((l + l.adjoint()) * rho1).trace().re;
+    let y2 = ((l + l.adjoint()) * rho2).trace().re;
 
     let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast();
     // let x0 = random_qubit_state();
@@ -34,13 +40,13 @@ pub fn qnd() -> SolverResult<()> {
 
     let num_tries = 10;
     let final_time: f64 = 10.0;
-    let dt = 0.0001;
-    let decimation = 1;
+    let dt = 0.00001;
+    let decimation = 10;
 
     let mut avg_sigmaz = vec![0.; (final_time / dt).ceil().to_usize().unwrap() + 1];
     let mut converged_traj = 0;
 
-    let gamma = 0.1;
+    let gamma = 0.4;
     let ub = (y1 - y2).abs() * gamma;
 
     let colors = [
@@ -54,20 +60,18 @@ pub fn qnd() -> SolverResult<()> {
             .unwrap(),
     );
 
-    // let mut rng = StdRng::seed_from_u64(0);
     let mut rng1 = rand::rng();
     let mut rng2 = rand::rng();
     let mut rng3 = rand::rng();
-    // let mut ts = vec![0.; avg_sigmaz.len()];
 
     for i in 0..num_tries {
         bar.inc(1);
         let mut system = systems::idealqubitcompletefeedback::QubitFeedback::new(
             h,
-            l1,
-            hc1,
+            l,
+            hc,
             QubitOperator::zeros(),
-            f11,
+            f1,
             y1,
             y2,
             gamma,
@@ -84,36 +88,37 @@ pub fn qnd() -> SolverResult<()> {
             .map(|rho| (PAULI_Z * rho).trace().re)
             .collect::<Vec<f64>>();
 
-        let mut slowsystem = systems::idealqubitcompletefeedback::QubitFeedback::new(
-            h,
-            l2,
-            hc2,
-            QubitOperator::zeros(),
-            f12,
-            y1,
-            y2,
-            gamma,
-            &mut rng2,
+        let mut controlledsystem = systems::idealqubitcompletefeedback::QubitFeedback::new(
+            h, l, hc, f0, f1, y1, y2, gamma, &mut rng2,
         );
-        let mut slowsolver = StochasticSolver::new(&mut slowsystem, 0.0, x0, final_time, dt);
-        slowsolver.integrate()?;
+        let mut controlledsolver =
+            StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
+        controlledsolver.integrate()?;
 
-        let (st_out, srho_out, sdy_out) = slowsolver.results().get();
+        let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
 
         let sobsv = srho_out
             .iter()
             .map(|rho| (PAULI_Z * rho).trace().re)
             .collect::<Vec<f64>>();
 
-        let mut controlledsystem = systems::idealqubitcompletefeedback::QubitFeedback::new(
-            h, l2, hc2, f0, f12, y1, y2, gamma, &mut rng3,
+        let mut controlledsystem2 = systems::idealqubitcompletefeedback::QubitFeedback::new(
+            h,
+            l,
+            hc,
+            f0,
+            f1,
+            y1,
+            y2,
+            gamma / 2.,
+            &mut rng3,
         );
 
-        let mut controlledsolver =
-            StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-        controlledsolver.integrate()?;
+        let mut controlledsolver2 =
+            StochasticSolver::new(&mut controlledsystem2, 0.0, x0, final_time, dt);
+        controlledsolver2.integrate()?;
 
-        let (ct_out, crho_out, cdy_out) = controlledsolver.results().get();
+        let (ct_out, crho_out, cdy_out) = controlledsolver2.results().get();
 
         let cobsv = crho_out
             .iter()
@@ -124,17 +129,8 @@ pub fn qnd() -> SolverResult<()> {
         let mut t = 0.;
         for i in 0..cdy_out.len() - 1 {
             t += dt;
-            let y = ((l1 + l1.adjoint()) * crho_out[i]).trace().re;
+            let y = ((l + l.adjoint()) * crho_out[i]).trace().re;
             newcorr[i + 1] = if (y - y2).abs() < ub { 1. } else { 0. };
-        }
-
-        if newcorr[newcorr.len() - 1] == 0. {
-            converged_traj += 1;
-            // avg_sigmaz = avg_sigmaz
-            //     .iter()
-            //     .zip(&obsv.iter().map(|o| o[2]).collect::<Vec<f64>>())
-            //     .map(|(x, y)| x + y)
-            //     .collect::<Vec<f64>>();
         }
 
         let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
@@ -172,14 +168,14 @@ pub fn qnd() -> SolverResult<()> {
             .set_line_color(colors[i as usize])
             .draw(&st_out_dec, &sobsv_dec);
 
-        plot.set_subplot(2, 2, 2).add(&szaxis);
+        plot.set_subplot(2, 2, 3).add(&szaxis);
 
         let mut czaxis = plotpy::Curve::new();
         czaxis
             .set_line_color(colors[i as usize])
             .draw(&ct_out_dec, &cobsv_dec);
 
-        plot.set_subplot(2, 2, 3).add(&czaxis);
+        plot.set_subplot(2, 2, 2).add(&czaxis);
 
         let mut corrs = plotpy::Curve::new();
         corrs
@@ -187,27 +183,9 @@ pub fn qnd() -> SolverResult<()> {
             .draw(&ct_out_dec, &newcorr_dec);
 
         plot.set_subplot(2, 2, 4).add(&corrs);
-
-        // ts = t_out.to_vec();
     }
     bar.finish();
 
-    // let mut sigmaz_avg_traj = plotpy::Curve::new();
-    // sigmaz_avg_traj
-    //     .set_label(&format!(
-    //         "Number of converged trajectories: {converged_traj}"
-    //     ))
-    //     .draw(
-    //         &ts,
-    //         &avg_sigmaz
-    //             .iter()
-    //             .map(|x| x / (converged_traj as f64))
-    //             .collect::<Vec<f64>>(),
-    //     );
-    //
-    // plot.add(&sigmaz_avg_traj);
-
-    println!("Converged trajectories: {converged_traj}");
     plot.show("tempimages")?;
 
     Ok(())
