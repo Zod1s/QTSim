@@ -12,9 +12,8 @@ pub struct QubitFeedback<'a, R: wiener::Rng + ?Sized> {
     hhat: QubitOperator,
     lhat: QubitOperator,
     y: f64,
-    y0: f64,
     y1: f64,
-    lb: f64,
+    y2: f64,
     ub: f64,
     tf: f64,
     rng: &'a mut R,
@@ -28,17 +27,15 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
         hc: QubitOperator,
         f0: QubitOperator,
         f1: QubitOperator,
-        y0: f64,
         y1: f64,
-        lb: f64,
-        ub: f64,
+        y2: f64,
+        gamma: f64,
         alpha: f64,
         rng: &'a mut R,
     ) -> Self {
         let normal = Normal::standard();
-        let epsilon = (y0 - y1).abs() / 4.;
+        let epsilon = (y1 - y2).abs() / 4.;
         let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
-        // let tf = 0.;
         let hhat = h + hc + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
 
@@ -49,11 +46,10 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
             hhat,
             lhat,
             y: 0.,
-            y0,
             y1,
+            y2,
             rng,
-            lb: (y0 - y1).abs() * lb,
-            ub: (y0 - y1).abs() * ub,
+            ub: (y1 - y2).abs() * gamma,
             tf,
             wiener: wiener::Wiener::new(),
         }
@@ -66,16 +62,13 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let avg = if t > self.tf { self.y / t } else { 0. };
-        let corr =
-            if avg.abs() > self.ub || (avg - self.y0).abs() > (avg - self.y1).abs() || t <= self.tf
-            {
-                0.
-            } else if (avg - self.y0).abs() < self.lb {
-                avg - self.y1
-                // -(avg - self.y1).abs()
-            } else {
-                0.
-            };
+        let corr = if t <= self.tf {
+            0.
+        } else if (avg - self.y2).abs() < self.ub {
+            1.
+        } else {
+            0.
+        };
 
         let id = QubitOperator::identity();
         let hhat = self.hhat + self.f0.scale(corr);

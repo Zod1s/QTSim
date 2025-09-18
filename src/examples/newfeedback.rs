@@ -69,7 +69,7 @@ pub fn newfeedback() -> SolverResult<()> {
         // let mut rng = StdRng::seed_from_u64(0);
         let mut rng = rand::rng();
         let mut system = systems::qubitcompletefeedback::QubitFeedback::new(
-            h, l, hc, f0, f1, y0, y1, lb, ub, alpha, &mut rng,
+            h, l, hc, f0, f1, y0, y1, ub, alpha, &mut rng,
         );
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);

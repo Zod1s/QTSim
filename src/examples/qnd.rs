@@ -68,7 +68,6 @@ pub fn qnd() -> SolverResult<()> {
             f1,
             y0,
             y1,
-            lb,
             ub,
             alpha,
             &mut rng,
