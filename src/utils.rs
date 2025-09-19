@@ -17,6 +17,7 @@ pub type QubitState = State<na::Const<2>>;
 pub type QubitOperator = Operator<na::Const<2>>;
 
 // const EPSILON: f64 = 1e-10;
+const TOL: f64 = 1e-10_f64;
 
 pub const PAULI_X: QubitOperator = na::Matrix2::new(
     na::Complex::ZERO,
@@ -296,4 +297,29 @@ pub fn check_qubit_feeback(h: &QubitOperator, l: &QubitOperator, f: &QubitOperat
         && comm_check != QubitOperator::zeros();
 
     println!("Valid feedback: {feed}")
+}
+
+fn sqrthm<D>(rho: &Operator<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
+    let mut decomp = rho.clone().symmetric_eigen();
+    decomp.eigenvalues = decomp
+        .eigenvalues
+        .map(|e| if e > TOL { f64::sqrt(e) } else { 0. });
+    decomp.recompose()
+}
+
+pub fn fidelity<D>(rho: &State<D>, sigma: &State<D>) -> f64
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
+    let rhosqrt = sqrthm(rho);
+    sqrthm(&(&rhosqrt * sigma * &rhosqrt)).trace().re.powi(2)
 }

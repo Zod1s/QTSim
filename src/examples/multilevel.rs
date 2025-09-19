@@ -14,18 +14,18 @@ pub fn multilevel() -> SolverResult<()> {
 
     let h = na::Matrix3::from_diagonal(&na::Vector3::new(1.0, 2.0, 3.0)).cast();
     let hc = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
-    let l = na::Matrix3::from_diagonal(&na::Vector3::new(1.0, 2.0, 3.0)).cast();
+    let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
     let f1 = Operator::<na::Const<3>>::zeros();
     // let l = na::matrix![0., 1., 0., 0.; 1., 0., 0., 0.; 0., 0., 0., 1.; 0., 0., 1., 0.].cast();
     // let f1 = na::Matrix2::<na::Complex<f64>>::identity()
     //     .kronecker(&PAULI_Y)
     //     .scale(-1.);
     // let hc = na::matrix![0., 0., 0., 0.; 0., 0., 1., 0.; 0., 1., 0., 0.; 0., 0., 0., 0.].cast();
-    let meas = na::Matrix3::from_diagonal(&na::Vector3::new(2., 1., -1.)).cast();
+    let meas = na::Matrix3::from_diagonal(&na::Vector3::new(-1., 2., 3.)).cast();
 
     let dt = 0.0001;
     let decimation = 10;
-    let final_time = 10.0;
+    let final_time = 20.0;
     let num_tries = 10;
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -35,6 +35,7 @@ pub fn multilevel() -> SolverResult<()> {
     let mut rng = rand::rng();
 
     let mut plot = plotpy::Plot::new();
+    let system = systems::wisemanfme::WisemanFME::new(h + hc, l, f1);
 
     let bar = ProgressBar::new(num_tries).with_style(
         ProgressStyle::default_bar()
@@ -52,12 +53,12 @@ pub fn multilevel() -> SolverResult<()> {
         let x0 = x0 * x0.conjugate().transpose();
         // let system = systems::wisemanfme::WisemanFME::new(h + hc, l, f1);
         // let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
-        let mut system = systems::wisemansse::WisemanSSE::new(h + hc, l, f1, &mut rng);
-        let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        // let mut system = systems::wisemansse::WisemanSSE::new(h + hc, l, f1, &mut rng);
+        let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
         solver.integrate()?;
 
         // let (t_out, rho_out) = solver.results().get();
-        let (t_out, rho_out, _) = solver.results().get();
+        let (t_out, rho_out) = solver.results().get();
 
         let obsv = rho_out
             .iter()
@@ -76,11 +77,34 @@ pub fn multilevel() -> SolverResult<()> {
             .draw(&t_out_plot, &obsv_plot);
 
         plot.add(&zobsv);
+
+        println!(
+            "Fidelity {i} = {}",
+            fidelity(
+                &rho_out[rho_out.len() - 1],
+                &Operator::<na::Const<3>>::identity().scale(1. / 3.)
+            )
+        );
     }
     bar.finish();
+
+    let mut xline = plotpy::Curve::new();
+    xline.set_line_color("#000000").draw_ray(
+        0.,
+        l.trace().re / 3.,
+        plotpy::RayEndpoint::Horizontal,
+    );
+    plot.add(&xline);
+
+    let mut xline2 = plotpy::Curve::new();
+    xline2
+        .set_line_color("#875699")
+        .draw_ray(0., l[(1, 1)].re, plotpy::RayEndpoint::Horizontal);
+    plot.add(&xline2);
+
     println!("Done simulations");
 
-    plot.show("tempimage")?;
+    plot.show("tempimages")?;
 
     Ok(())
 }

@@ -187,7 +187,7 @@ pub fn comparison() -> SolverResult<()> {
         .set_title("Sequential Version, mean trajectory")
         .set_equal_axes(true);
 
-    plot.show("tempimage")?;
+    plot.show("tempimages")?;
 
     Ok(())
 }
