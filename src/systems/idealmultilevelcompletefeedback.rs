@@ -20,6 +20,8 @@ pub struct Feedback<
     lhat: Operator<D>,
     y1: f64,
     lb: f64,
+    ub: f64,
+    lastset: LastSet,
     rng: &'a mut R,
     wiener: wiener::Wiener,
 }
@@ -53,7 +55,9 @@ where
             lhat,
             y1,
             rng,
-            lb: 2. * delta - gamma + y1,
+            lastset: LastSet::NotSet,
+            ub: 2. * delta - gamma + y1,
+            lb: 2. * delta - 2. * gamma + y1,
             wiener: wiener::Wiener::new(),
         }
     }
@@ -68,7 +72,24 @@ where
 {
     fn system(&mut self, t: f64, dt: f64, rho: &State<D>, dx: &mut State<D>, dw: &Vec<f64>) {
         let y = ((self.l + self.l.adjoint()) * rho).trace().re;
-        let corr = if y > self.lb { 1. } else { 0. };
+
+        let corr = if y <= self.lb {
+            0.
+        } else if y >= self.ub {
+            1.
+        } else if self.lastset == LastSet::NotSet || self.lastset == LastSet::LeGammaSet {
+            0.
+        } else {
+            1.
+        };
+
+        self.lastset = if y <= self.lb {
+            LastSet::LeGammaSet
+        } else if y >= self.ub {
+            LastSet::GeGamma2Set
+        } else {
+            self.lastset
+        };
 
         let id = Operator::identity();
         let hhat = self.hhat + self.f0.scale(corr);

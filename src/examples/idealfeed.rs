@@ -11,22 +11,22 @@ use rand_distr::num_traits::ToPrimitive;
 pub fn qnd() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
-    // let h = -PAULI_Z;
-    // let f0 = PAULI_X;
-    //
+    let h = -PAULI_Z;
+    let f0 = PAULI_X;
+
     // let l1 = -PAULI_Z + PAULI_X;
     // let hc1 = -PAULI_Y;
     // let f11 = -PAULI_Y;
-    //
-    // let l2 = -PAULI_Z + PAULI_X.scale(0.1);
-    // let hc2 = -PAULI_Y.scale(0.1);
-    // let f12 = -PAULI_Y.scale(0.1);
 
-    let h = PAULI_Z;
-    let hc = QubitOperator::zeros();
-    let l = PAULI_Z;
-    let f0 = PAULI_X;
-    let f1 = QubitOperator::zeros();
+    let l = -PAULI_Z + PAULI_X.scale(0.1);
+    let hc = -PAULI_Y.scale(0.1);
+    let f1 = -PAULI_Y.scale(0.1);
+
+    // let h = PAULI_Z;
+    // let hc = QubitOperator::zeros();
+    // let l = -PAULI_Z;
+    // let f0 = PAULI_X;
+    // let f1 = QubitOperator::zeros();
 
     let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
     let rho2 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
@@ -61,19 +61,21 @@ pub fn qnd() -> SolverResult<()> {
     );
 
     let mut rng1 = rand::rng();
-    let mut rng2 = rand::rng();
-    let mut rng3 = rand::rng();
+    // let mut rng2 = rand::rng();
+    let mut rng2 = StdRng::seed_from_u64(0);
+    // let mut rng3 = rand::rng();
+    let mut rng3 = StdRng::seed_from_u64(0);
 
     for i in 0..num_tries {
         bar.inc(1);
-        let mut system = systems::idealqubitcompletefeedback::QubitFeedback::new(
+        let mut system = systems::idealmultilevelcompletefeedback::Feedback::new(
             h,
             l,
             hc,
             QubitOperator::zeros(),
             f1,
             y1,
-            y2,
+            (y2 - y1) / 2.,
             gamma,
             &mut rng1,
         );
@@ -88,8 +90,16 @@ pub fn qnd() -> SolverResult<()> {
             .map(|rho| (PAULI_Z * rho).trace().re)
             .collect::<Vec<f64>>();
 
-        let mut controlledsystem = systems::idealqubitcompletefeedback::QubitFeedback::new(
-            h, l, hc, f0, f1, y1, y2, gamma, &mut rng2,
+        let mut controlledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
+            h,
+            l,
+            hc,
+            f0,
+            f1,
+            y1,
+            (y2 - y1) / 2.,
+            gamma,
+            &mut rng2,
         );
         let mut controlledsolver =
             StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
@@ -102,14 +112,14 @@ pub fn qnd() -> SolverResult<()> {
             .map(|rho| (PAULI_Z * rho).trace().re)
             .collect::<Vec<f64>>();
 
-        let mut controlledsystem2 = systems::idealqubitcompletefeedback::QubitFeedback::new(
+        let mut controlledsystem2 = systems::idealmultilevelcompletefeedback::Feedback::new(
             h,
             l,
             hc,
             f0,
             f1,
             y1,
-            y2,
+            2.,
             gamma / 2.,
             &mut rng3,
         );

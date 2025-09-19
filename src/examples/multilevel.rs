@@ -8,20 +8,20 @@ use rand_distr::num_traits::ToPrimitive;
 
 pub fn multilevel() -> SolverResult<()> {
     // let h = PAULI_Z;
+    // let hc = PAULI_X;
     // let l = PAULI_Z;
-    // let f = QubitOperator::zeros();
-    // let l = PAULI_X;
-    // let f = PAULI_Y;
+    // let f1 = QubitOperator::zeros();
 
-    let h = na::Matrix4::from_diagonal(&na::Vector4::new(1.0, 2.0, 3.0, 4.0)).cast();
-    // let l = na::Matrix4::from_diagonal(&na::Vector4::new(1.0, 2.0, 3.0, 4.0)).cast();
-    // let f = Operator::<na::Const<4>>::zeros();
-    let l = na::matrix![0., 1., 0., 0.; 1., 0., 0., 0.; 0., 0., 0., 1.; 0., 0., 1., 0.].cast();
-    let f1 = na::Matrix2::<na::Complex<f64>>::identity()
-        .kronecker(&PAULI_Y)
-        .scale(-1.);
-    let hc = na::matrix![0., 0., 0., 0.; 0., 0., 1., 0.; 0., 1., 0., 0.; 0., 0., 0., 0.].cast();
-    let meas = na::Matrix4::from_diagonal(&na::Vector4::new(2., 1., -1., -2.)).cast();
+    let h = na::Matrix3::from_diagonal(&na::Vector3::new(1.0, 2.0, 3.0)).cast();
+    let hc = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
+    let l = na::Matrix3::from_diagonal(&na::Vector3::new(1.0, 2.0, 3.0)).cast();
+    let f1 = Operator::<na::Const<3>>::zeros();
+    // let l = na::matrix![0., 1., 0., 0.; 1., 0., 0., 0.; 0., 0., 0., 1.; 0., 0., 1., 0.].cast();
+    // let f1 = na::Matrix2::<na::Complex<f64>>::identity()
+    //     .kronecker(&PAULI_Y)
+    //     .scale(-1.);
+    // let hc = na::matrix![0., 0., 0., 0.; 0., 0., 1., 0.; 0., 1., 0., 0.; 0., 0., 0., 0.].cast();
+    let meas = na::Matrix3::from_diagonal(&na::Vector3::new(2., 1., -1.)).cast();
 
     let dt = 0.0001;
     let decimation = 10;
@@ -48,7 +48,7 @@ pub fn multilevel() -> SolverResult<()> {
         // let x0 = na::Matrix2::new(1., 0., 0., 0.).cast();
 
         // let mut solver = Rk4::new(system, 0.0, x0, 20.0, 0.001);
-        let x0 = random_unit_complex_vector::<4>();
+        let x0 = random_unit_complex_vector::<3>();
         let x0 = x0 * x0.conjugate().transpose();
         // let system = systems::wisemanfme::WisemanFME::new(h + hc, l, f1);
         // let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
