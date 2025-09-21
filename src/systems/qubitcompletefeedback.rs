@@ -11,10 +11,12 @@ pub struct QubitFeedback<'a, R: wiener::Rng + ?Sized> {
     f0: QubitOperator,
     hhat: QubitOperator,
     lhat: QubitOperator,
+    lastset: LastSet,
     y: f64,
     y1: f64,
     y2: f64,
-    ub: f64,
+    ub1: f64,
+    ub2: f64,
     tf: f64,
     rng: &'a mut R,
     wiener: wiener::Wiener,
@@ -45,11 +47,13 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
             f0,
             hhat,
             lhat,
+            lastset: LastSet::NotSet,
             y: 0.,
             y1,
             y2,
             rng,
-            ub: (y1 - y2).abs() * gamma,
+            ub1: (y1 - y2).abs() * gamma,
+            ub2: (y1 - y2).abs() * gamma / 2.,
             tf,
             wiener: wiener::Wiener::new(),
         }
@@ -59,15 +63,29 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
     }
 }
 
+// WRONG, WE NEED TO USE THE SETS
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let avg = if t > self.tf { self.y / t } else { 0. };
-        let corr = if t <= self.tf {
+
+        let corr = if (avg - self.y2).abs() >= self.ub1 {
             0.
-        } else if (avg - self.y2).abs() < self.ub {
+        } else if (avg - self.y2).abs() <= self.ub2 {
             1.
-        } else {
+        } else if self.lastset == LastSet::NotSet {
             0.
+        } else if self.lastset == LastSet::LeGammaSet {
+            0.
+        } else {
+            1.
+        };
+
+        self.lastset = if (avg - self.y2).abs() >= self.ub1 {
+            LastSet::LeGammaSet
+        } else if (avg - self.y2).abs() <= self.ub2 {
+            LastSet::GeGamma2Set
+        } else {
+            self.lastset
         };
 
         let id = QubitOperator::identity();

@@ -8,5 +8,5 @@ mod utils;
 mod wiener;
 
 fn main() -> utils::SolverResult<()> {
-    examples::multilevel::multilevel()
+    examples::idealfeed::idealfeed()
 }
