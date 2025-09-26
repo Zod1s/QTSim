@@ -28,19 +28,20 @@ impl<'a, R: wiener::Rng + ?Sized> QubitWisemanSSE<'a, R> {
 }
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanSSE<'a, R> {
-    fn system(&mut self, _: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
-        let id = QubitOperator::identity();
-        let fst =
-            (self.hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
-        let snd = self
-            .lhat
-            .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
-
-        let m = id - fst + snd + thd;
-
-        let num = m * x * m.adjoint();
-        *dx = num.scale(1. / num.trace().re) - x;
+    fn system(&mut self, _: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
+        // let id = QubitOperator::identity();
+        // let fst =
+        //     (self.hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
+        // let snd = self
+        //     .lhat
+        //     .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
+        // let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
+        //
+        // let m = id - fst + snd + thd;
+        //
+        // let num = m * x * m.adjoint();
+        // *dx = num.scale(1. / num.trace().re) - x;
+        *drho = rouchonstep(dt, &rho, &self.hhat, &self.lhat, dw[0]);
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

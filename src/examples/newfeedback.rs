@@ -56,20 +56,21 @@ pub fn newfeedback() -> SolverResult<()> {
     //         .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
     //         .unwrap(),
     // );
-    let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
-    let rho0 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
-    let y0 = ((l + l.adjoint()) * rho0).trace().re;
+    let rho1 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
+    let rho2 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
     let y1 = ((l + l.adjoint()) * rho1).trace().re;
+    let y2 = ((l + l.adjoint()) * rho2).trace().re;
     let lb = 0.1;
     let ub = 3.;
     let alpha = 0.95;
+    let epsilon = (y1 - y2).abs() / 4.;
 
     for i in 0..num_tries {
         // bar.inc(1);
         // let mut rng = StdRng::seed_from_u64(0);
         let mut rng = rand::rng();
         let mut system = systems::qubitcompletefeedback::QubitFeedback::new(
-            h, l, hc, f0, f1, y0, y1, ub, alpha, &mut rng,
+            h, l, hc, f0, f1, y1, y2, ub, alpha, epsilon, &mut rng,
         );
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);

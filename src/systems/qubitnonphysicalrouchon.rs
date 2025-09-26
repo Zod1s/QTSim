@@ -33,20 +33,22 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysicalRouchon<'a, R> {
 }
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysicalRouchon<'a, R> {
-    fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
-        let id = QubitOperator::identity();
+    fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
+        // let id = QubitOperator::identity();
         let hhat = self.h + self.f.scale(self.dy / dt);
-        let fst = (hhat * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
-        let snd = self
-            .l
-            .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
+        // let fst = (hhat * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
+        // let snd = self
+        //     .l
+        //     .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
+        // let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
+        //
+        // let m = id - fst + snd + thd;
+        //
+        // let num = m * x * m.adjoint();
+        // *dx = num.scale(1. / num.trace().re) - x;
+        *drho = rouchonstep(dt, &rho, &hhat, &self.l, dw[0]);
 
-        let m = id - fst + snd + thd;
-
-        let num = m * x * m.adjoint();
-        *dx = num.scale(1. / num.trace().re) - x;
-        self.dy = self.measurement(x, dt, dw[0]);
+        self.dy = self.measurement(rho, dt, dw[0]);
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

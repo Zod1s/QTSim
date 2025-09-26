@@ -12,7 +12,7 @@ pub fn multilevel() -> SolverResult<()> {
     // let l = PAULI_Z;
     // let f1 = QubitOperator::zeros();
 
-    let h = na::Matrix3::from_diagonal(&na::Vector3::new(1.0, 2.0, 3.0)).cast();
+    let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
     let hc = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
     let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
     let f1 = Operator::<na::Const<3>>::zeros();

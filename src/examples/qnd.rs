@@ -20,10 +20,10 @@ pub fn qnd() -> SolverResult<()> {
     let f0 = PAULI_X;
     let f1 = QubitOperator::zeros();
 
-    let rho0 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
-    let rho1 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
-    let y0 = ((l + l.adjoint()) * rho0).trace().re;
+    let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
+    let rho2 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
     let y1 = ((l + l.adjoint()) * rho1).trace().re;
+    let y2 = ((l + l.adjoint()) * rho2).trace().re;
 
     let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast();
     // let x0 = random_qubit_state();
@@ -39,8 +39,9 @@ pub fn qnd() -> SolverResult<()> {
 
     let lb = 0.1;
     let ub = 3.;
-    let lbe = (y0 - y1).abs() * lb;
-    let ube = (y0 - y1).abs() * ub;
+    let lbe = (y1 - y2).abs() * lb;
+    let ube = (y1 - y2).abs() * ub;
+    let epsilon = (y1 - y2).abs() / 4.;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -66,10 +67,11 @@ pub fn qnd() -> SolverResult<()> {
             QubitOperator::zeros(),
             f0,
             f1,
-            y0,
             y1,
+            y2,
             ub,
             alpha,
+            epsilon,
             &mut rng,
         );
         let tf = system.tf();
@@ -121,10 +123,10 @@ pub fn qnd() -> SolverResult<()> {
             t += dt;
             acc += dy_out[i];
             newcorr[i + 1] =
-                if (acc / t).abs() > ube || (acc / t - y0).abs() > (acc / t - y1).abs() || t < tf {
+                if (acc / t).abs() > ube || (acc / t - y1).abs() > (acc / t - y2).abs() || t < tf {
                     0.
-                } else if (acc / t - y0).abs() < lbe {
-                    acc / t - y1
+                } else if (acc / t - y1).abs() < lbe {
+                    acc / t - y2
                     // -(acc / t - y1).abs()
                 } else {
                     0.

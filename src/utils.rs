@@ -1,6 +1,7 @@
 pub(crate) use nalgebra as na;
 use plotpy::StrError;
 use rand::prelude::*;
+use std::io::Error;
 use std::{
     num::ParseIntError,
     ops::{Add, Mul, Sub},
@@ -190,11 +191,20 @@ pub enum SolverError {
     BlochNormError(f64),
     #[error("{0}")]
     PlotPyError(&'static str),
+    #[error("IO Error")]
+    IoError,
 }
 
 impl From<StrError> for SolverError {
     fn from(value: StrError) -> Self {
         Self::PlotPyError(value)
+    }
+}
+
+impl From<std::io::Error> for SolverError {
+    fn from(value: std::io::Error) -> Self {
+        eprintln!("{}", value);
+        Self::IoError
     }
 }
 
@@ -322,4 +332,26 @@ where
 {
     let rhosqrt = sqrthm(rho);
     sqrthm(&(&rhosqrt * sigma * &rhosqrt)).trace().re.powi(2)
+}
+
+pub fn rouchonstep<D>(
+    dt: f64,
+    rho: &State<D>,
+    h: &Operator<D>,
+    l: &Operator<D>,
+    dw: f64,
+) -> State<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    let id = Operator::<D>::identity();
+    let fst = (h * na::Complex::I + l.adjoint() * l.scale(0.5)).scale(dt);
+    let snd = l.scale(((l + l.adjoint()) * rho).trace().re * dt + dw);
+    let thd = (l * l).scale(dw.powi(2) - dt).scale(0.5);
+
+    let m = id - fst + snd + thd;
+
+    let num = &m * rho * m.adjoint();
+    num.scale(1. / num.trace().re) - rho
 }

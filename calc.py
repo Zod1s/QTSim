@@ -8,6 +8,71 @@ fcp, f1p, hp, ls, lp, lq, lr = symbols("fcp f1p hp ls lp lq lr", complex=True)
 
 fcs, f1s, fcr, f1r, hs, hr = symbols("fcs f1s fcr f1r hs hr", real=True)
 
+a = symbols("a", real=True, nonzero=True)
+b, e, g = symbols("b e g", real=True)
+c, d, f = symbols("c d f", complex=True)
+
+hca, hcd, hcf = symbols("hca hcd hcf", real=True)
+hcb, hcc, hce = symbols("hcb hcc hce", complex=True)
+
+H0 = Matrix([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
+L = Matrix([[-1, a, 0], [a, 2, a], [0, a, 3]])
+Hc = Matrix([[hca, hcb, hcc], [conjugate(hcb), hcd, hce],
+            [conjugate(hcc), conjugate(hce), hcf]])
+F1 = Matrix([[b, c, d], [conjugate(c), e, f], [conjugate(d), conjugate(f), g]])
+
+Lhat = L - I * F1
+
+F1 = F1.subs({c: I * a, d: 0})
+Lhat = L - I * F1
+
+delta = 0.5 * simplify(F1 * L + conjugate(L.T) * F1)
+
+H = simplify(H0 + delta + Hc)
+
+Hp = H[0, 1:]
+Ls = Lhat[0, 0]
+Lp = Lhat[0, 1:]
+
+expr = I * Hp - 0.5 * conjugate(Ls) * Lp
+expr = simplify(expand(expr))
+
+F1 = F1.subs({b: 0, e: 0, f: I * a, g: 0})
+Hc = Hc.subs({hcb: 0.5 * I * a, hcc: -I * a**2})
+
+Lhat = L - I * F1
+delta = 0.5 * simplify(F1 * L + conjugate(L.T) * F1)
+
+H = simplify(H0 + delta + Hc)
+
+Hp = H[0, 1:]
+Ls = Lhat[0, 0]
+Lp = Lhat[0, 1:]
+
+expr = I * Hp - 0.5 * conjugate(Ls) * Lp
+expr = simplify(expand(expr))
+
+Hc = Hc.subs({hca: 1, hcd: -2, hce: -2.5 * I * a, hcf: -3})
+
+Lhat = L - I * F1
+delta = 0.5 * simplify(F1 * L + conjugate(L.T) * F1)
+
+H = simplify(H0 + delta + Hc)
+
+Hp = H[0, 1:]
+Ls = Lhat[0, 0]
+Lp = Lhat[0, 1:]
+
+expr = I * Hp - 0.5 * conjugate(Ls) * Lp
+expr = simplify(expand(expr))
+pprint(expr)
+
+pprint(F1)
+pprint(Hc)
+pprint(H)
+pprint(Lhat)
+
+pprint(simplify(H * Lhat - Lhat * H))
 
 # H0s = MatrixSymbol("H0s", 1, 1)
 # H0p = MatrixSymbol("H0p", 1, N)
@@ -59,12 +124,12 @@ fcs, f1s, fcr, f1r, hs, hr = symbols("fcs f1s fcr f1r hs hr", real=True)
 # Fc = Matrix([[fcs, fcp], [conjugate(fcp), fcr]])
 # F1 = Matrix([[f1s, f1p], [conjugate(f1p), f1r]])
 
-paulix = Matrix([[0, 1], [1, 0]])
-pauliy = Matrix([[0, -I], [I, 0]])
-pauliz = Matrix([[1, 0], [0, -1]])
-
-pprint(pauliz + 0.5 * (-pauliy * paulix - paulix * pauliy))
-pprint(paulix + I * pauliy)
+# paulix = Matrix([[0, 1], [1, 0]])
+# pauliy = Matrix([[0, -I], [I, 0]])
+# pauliz = Matrix([[1, 0], [0, -1]])
+#
+# pprint(pauliz + 0.5 * (-pauliy * paulix - paulix * pauliy))
+# pprint(paulix + I * pauliy)
 
 # H = pauliz
 # L = pauliz + 0.5 * paulix

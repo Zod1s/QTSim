@@ -32,12 +32,12 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
         y1: f64,
         y2: f64,
         gamma: f64,
-        alpha: f64,
+        beta: f64,
+        epsilon: f64,
         rng: &'a mut R,
     ) -> Self {
         let normal = Normal::standard();
-        let epsilon = (y1 - y2).abs() / 4.;
-        let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
+        let tf = (normal.inverse_cdf((beta + 1.) / 2.) / epsilon).powi(2);
         let hhat = h + hc + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
 
@@ -65,16 +65,14 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
 
 // WRONG, WE NEED TO USE THE SETS
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
-    fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+    fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         let avg = if t > self.tf { self.y / t } else { 0. };
 
         let corr = if (avg - self.y2).abs() >= self.ub1 {
             0.
         } else if (avg - self.y2).abs() <= self.ub2 {
             1.
-        } else if self.lastset == LastSet::NotSet {
-            0.
-        } else if self.lastset == LastSet::LeGammaSet {
+        } else if self.lastset == LastSet::NotSet || self.lastset == LastSet::LeGammaSet {
             0.
         } else {
             1.
@@ -88,19 +86,20 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
             self.lastset
         };
 
-        let id = QubitOperator::identity();
+        // let id = QubitOperator::identity();
         let hhat = self.hhat + self.f0.scale(corr);
-        let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
-        let snd = self
-            .lhat
-            .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
-
-        let m = id - fst + snd + thd;
-
-        let num = m * x * m.adjoint();
-        *dx = num.scale(1. / num.trace().re) - x;
-        let dy = self.measurement(x, dt, dw[0]);
+        // let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
+        // let snd = self
+        //     .lhat
+        //     .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
+        // let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
+        //
+        // let m = id - fst + snd + thd;
+        //
+        // let num = m * x * m.adjoint();
+        // *dx = num.scale(1. / num.trace().re) - x;
+        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
+        let dy = self.measurement(rho, dt, dw[0]);
         self.y += dy;
     }
 

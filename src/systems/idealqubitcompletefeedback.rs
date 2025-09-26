@@ -52,7 +52,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
 }
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
-    fn system(&mut self, t: f64, dt: f64, rho: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
+    fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         let y = ((self.l + self.l.adjoint()) * rho).trace().re;
 
         let corr = if (y - self.y2).abs() >= self.ub1 {
@@ -75,18 +75,8 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
             self.lastset
         };
 
-        let id = QubitOperator::identity();
         let hhat = self.hhat + self.f0.scale(corr);
-        let fst = (hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
-        let snd = self
-            .lhat
-            .scale((self.lhat * rho + rho * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
-
-        let m = id - fst + snd + thd;
-
-        let num = m * rho * m.adjoint();
-        *dx = num.scale(1. / num.trace().re) - rho;
+        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

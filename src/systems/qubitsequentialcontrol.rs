@@ -26,21 +26,22 @@ impl<'a, R: wiener::Rng + ?Sized> QubitSequentialControl<'a, R> {
 }
 
 impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequentialControl<'a, R> {
-    fn system(&mut self, _: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
-        let id = QubitOperator::identity();
-        let fst = (self.h * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
-        let snd = self
-            .l
-            .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
-        let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
+    fn system(&mut self, _: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
+        // let id = QubitOperator::identity();
+        // let fst = (self.h * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
+        // let snd = self
+        //     .l
+        //     .scale((self.l * x + x * self.l.adjoint()).trace().re * dt + dw[0]);
+        // let thd = (self.l * self.l).scale(dw[0].powi(2) - dt).scale(0.5);
+        //
+        // let m = id - fst + snd + thd;
+        //
+        // let num = m * x * m.adjoint();
+        // let rho = num.scale(1. / num.trace().re);
+        let sigma = rho + rouchonstep(dt, &rho, &self.h, &self.l, dw[0]);
+        let dy = self.measurement(rho, dt, dw[0]);
 
-        let m = id - fst + snd + thd;
-
-        let num = m * x * m.adjoint();
-        let rho = num.scale(1. / num.trace().re);
-        let dy = self.measurement(x, dt, dw[0]);
-
-        let feedback = |sigma| -commutator(&self.f, sigma) * na::Complex::I;
+        let feedback = |tau| -commutator(&self.f, tau) * na::Complex::I;
 
         // I don't know if I am doing this right, it may lose the positivity constraint
         // I am evolving the state for dt, then applying the series expansion of exp(Mdy)
@@ -48,9 +49,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequenti
         // from a numerical point of view
         // Also, I need to explore whether I need to use dt or dy^2 for the actual dy^2
 
-        let feedrho = feedback(&rho);
+        let feedrho = feedback(&sigma);
 
-        *dx = rho - x + (feedrho).scale(dy) + (feedback(&feedrho)).scale(0.5 * dy.powi(2));
+        *drho = sigma - rho + (feedrho).scale(dy) + (feedback(&feedrho)).scale(0.5 * dy.powi(2));
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
