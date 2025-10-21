@@ -15,28 +15,30 @@ pub fn output() -> SolverResult<()> {
     let f0 = PAULI_X;
     let f1 = QubitOperator::zeros();
 
+    // let mut rng = rand::rng();
+    // let x0 = random_qubit_state();
     let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast();
     let x0bloch = to_bloch(&x0)?;
 
-    let num_tries = 1;
-    let final_time: f64 = 20.0;
+    let num_tries = 5;
+    let final_time: f64 = 10.0;
     let dt = 0.0001;
 
-    let k = 1000;
+    let k = 10000;
     let avg_fac = (k as f64) * dt;
 
-    let beta = 0.9;
+    let beta = 0.95;
     let epsilon = 4.;
     let normal = Normal::standard();
     let tf = (normal.inverse_cdf((beta + 1.) / 2.) / epsilon).powi(2);
+
+    let alpha = 0.5;
 
     let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
     let rho2 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
     let y1 = ((l + l.adjoint()) * rho1).trace().re;
     let y2 = ((l + l.adjoint()) * rho2).trace().re;
-    let gamma = 0.2;
-    let ub1 = (y1 - y2).abs() * gamma;
-    let ub2 = (y1 - y2).abs() * gamma / 2.;
+    let gamma = 0.4;
 
     let mut plots = Vec::with_capacity(num_tries);
     for i in 0..num_tries {
@@ -60,21 +62,13 @@ pub fn output() -> SolverResult<()> {
         // let mut rng = rand::rng();
         let mut rng = StdRng::seed_from_u64(i as u64);
         // let mut system = systems::qubitwisemansse::QubitWisemanSSE::new(h, l, f, &mut rng);
-        // let mut system = systems::idealqubitcompletefeedback::QubitFeedback::new(
-        //     h, l, hc, f0, f1, y1, y2, gamma, &mut rng,
-        // );
-        let mut system = systems::qubitcompletefeedback::QubitFeedback2::new(
-            h, l, hc, f0, f1, y1, y2, k, gamma, beta, epsilon, &mut rng,
+        let mut system = systems::idealqubitcompletefeedback::QubitFeedback::new(
+            h, l, hc, f0, f1, y1, y2, gamma, &mut rng,
         );
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
         solver.integrate()?;
 
         let (t_out, rho_out, dy_out) = solver.results().get();
-
-        let mut y = vec![0.; dy_out.len()];
-        for i in 1..dy_out.len() {
-            y[i] = y[i - 1] + dy_out[i - 1];
-        }
 
         let bar_y: Vec<f64> = rho_out
             .iter()
@@ -109,19 +103,34 @@ pub fn output() -> SolverResult<()> {
             wind_y[i] = wind_y[i] / avg_fac;
         }
 
+        // let mut ewma_dy = vec![0.; dy_out.len()];
+        let mut ewma_y = vec![0.; dy_out.len()];
+        // ewma_dy[0] = alpha * dy_out[0];
+        // for i in 1..dy_out.len() {
+        //     ewma_dy[i] = alpha * dy_out[i] + (1. - alpha) * ewma_dy[i - 1];
+        // }
+
+        ewma_y[0] = alpha * hat_y[0];
+        for i in 1..hat_y.len() {
+            ewma_y[i] = (1. - alpha) * ewma_y[i - 1] + alpha * hat_y[i];
+        }
+
+        // for i in 0..ewma_y.len() {
+        //     if t_out[i] < tf {
+        //         ewma_y[i] = 0.
+        //     } else {
+        //         ewma_y[i] = ewma_y[i] / t_out[i];
+        //     }
+        // }
+
         let mut diff_y1 = vec![0.; dy_out.len()];
         for i in 0..dy_out.len() {
             diff_y1[i] = bar_y[i] - hat_y[i];
         }
         let mut diff_y2 = vec![0.; dy_out.len()];
         for i in 0..dy_out.len() {
-            diff_y2[i] = bar_y[i] - wind_y[i];
+            diff_y2[i] = bar_y[i] - ewma_y[i];
         }
-
-        let obsv = rho_out
-            .iter()
-            .map(|rho| fidelity(rho, &rho1))
-            .collect::<Vec<f64>>();
 
         let mut baryline = plotpy::Curve::new();
         baryline.set_line_color(colors[0]).draw(t_out, &bar_y);
@@ -132,35 +141,23 @@ pub fn output() -> SolverResult<()> {
         let mut windyline = plotpy::Curve::new();
         windyline.set_line_color(colors[2]).draw(t_out, &wind_y);
 
+        let mut ewmayline = plotpy::Curve::new();
+        ewmayline.set_line_color(colors[2]).draw(t_out, &ewma_y);
+
         let mut diffy1line = plotpy::Curve::new();
         diffy1line.set_line_color(colors[3]).draw(t_out, &diff_y1);
         let mut diffy2line = plotpy::Curve::new();
         diffy2line.set_line_color(colors[4]).draw(t_out, &diff_y2);
 
-        // let mut fidline = plotpy::Curve::new();
-        // fidline.set_line_color(colors[5]).draw(t_out, &obsv);
-        let mut yline = plotpy::Curve::new();
-        yline.set_line_color(colors[5]).draw(t_out, &y);
-
         plots[i]
-            .set_subplot(2, 3, 1)
-            .set_horiz_line(y2 + ub1, "#000000", "-", 2.)
-            .set_horiz_line(y2 + ub2, "#00FF00", "-", 2.)
+            .set_subplot(2, 2, 1)
             .add(&baryline)
-            .set_subplot(2, 3, 2)
-            .set_horiz_line(y2 + ub1, "#000000", "-", 2.)
-            .set_horiz_line(y2 + ub2, "#00FF00", "-", 2.)
+            .set_subplot(2, 2, 2)
             .add(&hatyline)
-            .set_subplot(2, 3, 3)
-            .set_horiz_line(y2 + ub1, "#000000", "-", 2.)
-            .set_horiz_line(y2 + ub2, "#00FF00", "-", 2.)
-            .add(&windyline)
-            .set_subplot(2, 3, 4)
-            // .add(&fidline)
-            .add(&yline)
-            .set_subplot(2, 3, 5)
+            .set_subplot(2, 2, 3)
+            .add(&ewmayline)
+            .set_subplot(2, 2, 4)
             .add(&diffy1line)
-            .set_subplot(2, 3, 6)
             .add(&diffy2line);
     }
     bar.finish();
