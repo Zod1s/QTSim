@@ -59,9 +59,7 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
             0.
         } else if (y - self.y2).abs() <= self.ub2 {
             1.
-        } else if self.lastset == LastSet::NotSet {
-            0.
-        } else if self.lastset == LastSet::LeGammaSet {
+        } else if self.lastset == LastSet::NotSet || self.lastset == LastSet::LeGammaSet {
             0.
         } else {
             1.
