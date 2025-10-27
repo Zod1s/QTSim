@@ -23,13 +23,16 @@ A = -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I)) + \
     np.kron(np.conj(L), L) - 0.5 * \
     (np.kron(I, np.conj(L.T) @ L) + np.kron(L.T @ np.conj(L), I))
 
-print(A)
-print(A.real)
-print(A.imag)
+# print(A)
+# print(A.real)
+# print(A.imag)
 
-print(np.linalg.matrix_rank(A))
+print("Spectrum")
+print(np.linalg.eig(A))
 
-print(A @ np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
+# print(np.linalg.matrix_rank(A))
+
+# print(A @ np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
 
 
 # print(A)
