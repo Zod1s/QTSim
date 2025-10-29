@@ -9,7 +9,7 @@ pauliz = np.array([[1, 0], [0, -1]])
 # F0 = -0.1 * pauliy
 H = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
 L = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
-F0 = 0.1 * np.array([[0, 1, 1], [1, 0, 1], [1, 1, 0]])
+F0 = 1. * np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])
 
 # Lhat = L - 1j * F1
 # Hhat = H + 0.5 * (F1 @ L + np.conj(L).T @ F1)
@@ -27,15 +27,8 @@ A = -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I)) + \
 # print(A.real)
 # print(A.imag)
 
-print("Spectrum")
-print(np.linalg.eig(A))
+# print("Spectrum")
+# print(np.linalg.eig(A))
 
-# print(np.linalg.matrix_rank(A))
-
-# print(A @ np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
-
-
-# print(A)
-# eigs, eigvs = np.linalg.eig(A)
-# print(eigs)
-# print(eigvs)
+print(np.linalg.matrix_rank(A))
+print(A @ np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))

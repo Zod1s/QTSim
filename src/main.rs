@@ -9,7 +9,5 @@ mod utils;
 mod wiener;
 
 fn main() -> utils::SolverResult<()> {
-    kron::vectorisationexample();
-    Ok(())
-    // examples::output::output()
+    kron::vectorisationexample()
 }

@@ -355,3 +355,30 @@ where
     let num = &m * rho * m.adjoint();
     num.scale(1. / num.trace().re) - rho
 }
+
+pub fn veclindblad<D>(h: &Operator<D>, l: &Operator<D>) -> Operator<na::DimProd<D, D>>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy + na::DimMul<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator:
+        na::allocator::Allocator<<D as na::DimMul<D>>::Output, <D as na::DimMul<D>>::Output>,
+{
+    let id = Operator::<D>::identity();
+    -(id.kronecker(h) - h.conjugate().kronecker(&id)) * na::Complex::I + l.conjugate().kronecker(&l)
+        - (id.kronecker(&(l.adjoint() * l)) + (l.adjoint() * l).transpose().kronecker(&id))
+            .scale(0.5)
+}
+
+pub fn veclindbladheis<D>(h: &Operator<D>, l: &Operator<D>) -> Operator<na::DimProd<D, D>>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy + na::DimMul<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator:
+        na::allocator::Allocator<<D as na::DimMul<D>>::Output, <D as na::DimMul<D>>::Output>,
+{
+    let id = Operator::<D>::identity();
+    (id.kronecker(h) - h.conjugate().kronecker(&id)) * na::Complex::I
+        + l.transpose().kronecker(&l.adjoint())
+        - (id.kronecker(&(l.adjoint() * l)) + (l.adjoint() * l).transpose().kronecker(&id))
+            .scale(0.5)
+}
