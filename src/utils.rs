@@ -10,8 +10,8 @@ use thiserror::Error;
 
 type TMul<T> = <T as Mul>::Output;
 
-pub type State<D> = na::OMatrix<na::Complex<f64>, D, D>;
-pub type Operator<D> = State<D>;
+pub type Operator<D> = na::OMatrix<na::Complex<f64>, D, D>;
+pub type State<D> = Operator<D>;
 pub type SolverResult<T> = Result<T, SolverError>;
 pub type BlochVector = na::SVector<f64, 3>;
 pub type QubitState = State<na::Const<2>>;
@@ -94,15 +94,41 @@ pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
     bloch
 }
 
-pub fn random_complex_vector<const D: usize>() -> na::SVector<na::Complex<f64>, D> {
+pub fn random_complex_vector<D>() -> na::OVector<na::Complex<f64>, D>
+where
+    D: na::Dim + na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+{
     let mut rng = rand::rng();
-    na::SVector::from_fn(|_, _| {
+    na::OVector::from_fn(|_, _| {
         na::Complex::new(rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0))
     })
 }
 
-pub fn random_unit_complex_vector<const D: usize>() -> na::SVector<na::Complex<f64>, D> {
+pub fn random_unit_complex_vector<D>() -> na::OVector<na::Complex<f64>, D>
+where
+    D: na::Dim + na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+{
     random_complex_vector::<D>().normalize()
+}
+
+pub fn random_pure_state<D>() -> State<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<1>, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
+    let x = random_unit_complex_vector::<D>();
+    let x = &x * x.adjoint();
+    let x = &x / x.trace();
+
+    let mut decomp = x.symmetric_eigen();
+    decomp.eigenvalues = decomp.eigenvalues.map(|e| e.max(0.));
+    let x = decomp.recompose();
+    &x / x.trace()
 }
 
 pub fn random_vector_3() -> na::SVector<f64, 3> {
@@ -172,7 +198,7 @@ pub enum SolverError {
     #[error("Error, the given matrix is not positive semidefinite")]
     NotPositiveSemidefinite,
     #[error("Error, the given matrix has trace {0}, which is different from 1")]
-    NotUnitaryTrace(f64),
+    NotUnitTrace(f64),
     #[error("Error, the final time of the simulation cannot be negative")]
     NegativeFinalTime,
     #[error("Error, the noise operators have incompatible noise shapes")]
@@ -250,7 +276,7 @@ where
     if state.trace().re == 1. {
         Ok(())
     } else {
-        Err(SolverError::NotUnitaryTrace(state.trace().re))
+        Err(SolverError::NotUnitTrace(state.trace().re))
     }
 }
 

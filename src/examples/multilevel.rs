@@ -49,7 +49,7 @@ pub fn multilevel() -> SolverResult<()> {
         // let x0 = na::Matrix2::new(1., 0., 0., 0.).cast();
 
         // let mut solver = Rk4::new(system, 0.0, x0, 20.0, 0.001);
-        let x0 = random_unit_complex_vector::<3>();
+        let x0 = random_unit_complex_vector::<na::U3>();
         let x0 = x0 * x0.conjugate().transpose();
         // let system = systems::wisemanfme::WisemanFME::new(h + hc, l, f1);
         // let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
