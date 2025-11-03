@@ -17,7 +17,6 @@ pub type BlochVector = na::SVector<f64, 3>;
 pub type QubitState = State<na::Const<2>>;
 pub type QubitOperator = Operator<na::Const<2>>;
 
-// const EPSILON: f64 = 1e-10;
 const TOL: f64 = 1e-10_f64;
 
 pub const PAULI_X: QubitOperator = na::Matrix2::new(
@@ -219,6 +218,10 @@ pub enum SolverError {
     PlotPyError(&'static str),
     #[error("IO Error")]
     IoError,
+    #[error("Non asymptotically stable matrix")]
+    NonAsymptoticallyStableError,
+    #[error("Non positive definite matrix")]
+    NonPositiveDefiniteError,
 }
 
 impl From<StrError> for SolverError {

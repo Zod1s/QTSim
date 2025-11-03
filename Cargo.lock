@@ -8,8 +8,12 @@ version = "0.1.0"
 dependencies = [
  "indicatif",
  "itertools",
+ "lapack",
+ "lapack-sys",
  "lazy_static",
+ "libc",
  "nalgebra",
+ "num-complex",
  "num_cpus",
  "plotpy",
  "rand 0.9.0",
@@ -168,6 +172,26 @@ checksum = "1cfaf33c695fc6e08064efbc1f72ec937429614f25eef83af942d0e227c3a28f"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "lapack"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "508f7f48955e5e4ec3feb771a4d981c6e59ff2400d750cf41733a3350fdb2dc4"
+dependencies = [
+ "lapack-sys",
+ "libc",
+ "num-complex",
+]
+
+[[package]]
+name = "lapack-sys"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "314b879030845b68571809a6978e52d3b67ac5fba07e77b1b317b484092e2fb5"
+dependencies = [
+ "libc",
 ]
 
 [[package]]
