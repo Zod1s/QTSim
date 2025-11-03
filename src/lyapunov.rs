@@ -80,3 +80,104 @@ pub fn lyapunov2x2(a: &na::Matrix2<f64>, q: &na::Matrix2<f64>) -> SolverResult<n
 
     Ok(x)
 }
+
+pub fn lyapunovnxn<const D: usize>(
+    a: &na::OMatrix<f64, na::Const<D>, na::Const<D>>,
+    q: &mut na::OMatrix<f64, na::Const<D>, na::Const<D>>,
+) -> SolverResult<na::OMatrix<f64, na::Const<D>, na::Const<D>>>
+where
+    na::Const<D>: na::Dim,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<D>, na::Const<D>>,
+{
+    let mut lnext = D;
+    let mut knext = 0;
+
+    let mut mink1n = 0;
+    let mut mink2n = 0;
+    let mut minl1n = 0;
+    let mut minl2n = 0;
+
+    let mut l1 = 0;
+    let mut l2 = 0;
+    let mut k1 = 0;
+    let mut k2 = 0;
+
+    let mut vec = vec![vec![0., 0.], vec![0., 0.]];
+    let mut x = vec![vec![0., 0.], vec![0., 0.]];
+
+    for l in (0..D).rev() {
+        if l > lnext {
+            continue;
+        }
+
+        l1 = l;
+        l2 = l;
+
+        if l > 0 {
+            if a[(l, l - 1)] != 0. {
+                l1 -= 1;
+            }
+            lnext -= 1;
+        }
+
+        minl1n = (l1 + 1).min(D);
+        minl2n = (l2 + 1).min(D);
+        knext = l;
+
+        for k in (0..l).rev() {
+            if k >= knext {
+                continue;
+            }
+
+            k1 = k;
+            k2 = k;
+
+            if k > 0 {
+                if a[(k, k - 1)] != 0. {
+                    k1 = k1 - 1;
+                }
+                knext = k1 - 1;
+            }
+            mink1n = (k1 + 1).min(D);
+            mink2n = (k2 + 1).min(D);
+
+            if l1 == l2 && k1 == k2 {
+                vec[0][0] = q[(k1, l1)]
+                    - a.view((k1, mink1n), (D - k1, 1))
+                        .dot(&q.view((mink1n, l1), (1, D - k1)))
+                    + q.view((k1, minl1n), (D - l1, 1))
+                        .dot(&a.view((l1, minl1n), (1, D - l1)));
+
+                let a11 = a[(k1, k1)] + a[(l1, l1)];
+
+                x[0][0] = vec[0][0] / a11;
+                q[(k1, l1)] = x[0][0];
+                if k1 != l1 {
+                    q[(l1, k1)] = x[0][0];
+                }
+            } else if l1 == l2 && k1 != k2 {
+                vec[0][0] = q[(k1, l1)]
+                    - a.view((k1, mink2n), (D - k2, 1))
+                        .dot(&q.view((mink2n, l1), (1, D - k2)))
+                    + q.view((k1, minl2n), (D - l2, 1))
+                        .dot(&a.view((l1, minl2n), (1, D - l2)));
+
+                vec[1][0] = q[(k2, l1)]
+                    - a.view((k2, mink2n), (D - k2, 1))
+                        .dot(&q.view((mink2n, l1), (1, D - k2)))
+                    + q.view((k2, minl2n), (D - l2, 1))
+                        .dot(&a.view((l1, minl2n), (1, D - l2)));
+
+                let a11 = a[(k1, k1)] + a[(l1, l1)];
+
+                x[0][0] = vec[0][0] / a11;
+                q[(k1, l1)] = x[0][0];
+                if k1 != l1 {
+                    q[(l1, k1)] = x[0][0];
+                }
+            }
+        }
+    }
+
+    panic!("")
+}
