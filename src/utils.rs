@@ -222,6 +222,8 @@ pub enum SolverError {
     NonAsymptoticallyStableError,
     #[error("Non positive definite matrix")]
     NonPositiveDefiniteError,
+    #[error("Lapack error: {0}")]
+    LapackError(i32),
 }
 
 impl From<StrError> for SolverError {
@@ -410,4 +412,12 @@ where
         + l.transpose().kronecker(&l.adjoint())
         - (id.kronecker(&(l.adjoint() * l)) + (l.adjoint() * l).transpose().kronecker(&id))
             .scale(0.5)
+}
+
+pub fn lapackerror(info: i32) -> SolverResult<()> {
+    if info == 0 {
+        Ok(())
+    } else {
+        Err(SolverError::LapackError(info))
+    }
 }
