@@ -112,8 +112,9 @@ pub fn lyapunovtrend() -> SolverResult<()> {
     });
 
     let p = lyapunov::lyapunovequation(&a, &(-na::DMatrix::identity(8, 8)))?;
-    println!("{p}");
-    println!("{}", p.symmetric_eigenvalues());
+    println!("{p:.6}");
+    // println!("{:.6}", &a.transpose() * &p + &p * &a);
+    // println!("{}", p.symmetric_eigenvalues());
 
     Ok(())
 }
