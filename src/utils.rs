@@ -19,26 +19,48 @@ pub type QubitOperator = Operator<na::Const<2>>;
 
 const TOL: f64 = 1e-10_f64;
 
-pub const PAULI_X: QubitOperator = na::Matrix2::new(
-    na::Complex::ZERO,
-    na::Complex::ONE,
-    na::Complex::ONE,
-    na::Complex::ZERO,
+const ZERO: na::Complex<f64> = na::Complex::ZERO;
+const ONE: na::Complex<f64> = na::Complex::ONE;
+const I: na::Complex<f64> = na::Complex::I;
+const MONE: na::Complex<f64> = na::Complex::new(-1., 0.);
+const MI: na::Complex<f64> = na::Complex::new(0., -1.);
+const FRAC_1_SQRT_3: f64 = 0.577350269189625764509148780501957456_f64;
+
+pub const PAULI_X: QubitOperator = na::Matrix2::new(ZERO, ONE, ONE, ZERO);
+
+pub const PAULI_Y: QubitOperator = na::Matrix2::new(ZERO, MI, I, ZERO);
+
+pub const PAULI_Z: QubitOperator = na::Matrix2::new(ONE, ZERO, ZERO, MONE);
+
+pub const GELLMANN1: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, ONE, ZERO, ONE, ZERO, ZERO, ZERO, ZERO, ZERO);
+pub const GELLMANN2: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, MI, ZERO, I, ZERO, ZERO, ZERO, ZERO, ZERO);
+pub const GELLMANN3: Operator<na::Const<3>> =
+    na::Matrix3::new(ONE, ZERO, MONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO);
+pub const GELLMANN4: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, ZERO, ONE, ZERO, ZERO, ZERO, ONE, ZERO, ZERO);
+pub const GELLMANN5: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, ZERO, MI, ZERO, ZERO, ZERO, I, ZERO, ZERO);
+pub const GELLMANN6: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ZERO, ONE, ZERO);
+pub const GELLMANN7: Operator<na::Const<3>> =
+    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, MI, ZERO, I, ZERO);
+pub const GELLMANN8: Operator<na::Const<3>> = na::Matrix3::new(
+    na::Complex::new(1. / FRAC_1_SQRT_3, 0.),
+    ZERO,
+    ZERO,
+    ZERO,
+    na::Complex::new(1. / FRAC_1_SQRT_3, 0.),
+    ZERO,
+    ZERO,
+    ZERO,
+    na::Complex::new(2. / FRAC_1_SQRT_3, 0.),
 );
 
-pub const PAULI_Y: QubitOperator = na::Matrix2::new(
-    na::Complex::ZERO,
-    na::Complex::new(0.0, -1.0),
-    na::Complex::I,
-    na::Complex::ZERO,
-);
-
-pub const PAULI_Z: QubitOperator = na::Matrix2::new(
-    na::Complex::ONE,
-    na::Complex::ZERO,
-    na::Complex::ZERO,
-    na::Complex::new(-1.0, 0.0),
-);
+pub const GELLMANNMATRICES: [Operator<na::Const<3>>; 8] = [
+    GELLMANN1, GELLMANN2, GELLMANN3, GELLMANN4, GELLMANN5, GELLMANN6, GELLMANN7, GELLMANN8,
+];
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LastSet {
@@ -317,6 +339,14 @@ where
     h + (f * l + l.adjoint() * f).scale(0.5)
 }
 
+pub fn lindbladian<D>(h: &Operator<D>, l: &Operator<D>, x: &Operator<D>) -> Operator<D>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    hamiltonian_term(h, x) + measurement_term(l, x)
+}
+
 pub fn check_qubit_feeback(h: &QubitOperator, l: &QubitOperator, f: &QubitOperator) {
     let rhod = na::Matrix2::new(0., 0., 0., 1.).cast::<na::Complex<f64>>();
     let comm_check = commutator(&rhod, &(l + l.adjoint()));
@@ -415,7 +445,7 @@ where
 }
 
 pub fn lapackerror(info: i32) -> SolverResult<()> {
-    if info == 0 {
+    if info >= 0 {
         Ok(())
     } else {
         Err(SolverError::LapackError(info))

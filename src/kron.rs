@@ -1,5 +1,6 @@
 use core::f64;
 
+use crate::lyapunov;
 use crate::plots::constrainedlayout;
 use crate::solver::Rk4;
 use crate::systems;
@@ -91,5 +92,28 @@ pub fn vectorisationexample() -> SolverResult<()> {
 
     plot.add(&expline).add(&expline2).legend();
     plot.show("tempimage.png")?;
+    Ok(())
+}
+
+pub fn lyapunovtrend() -> SolverResult<()> {
+    let d: f64 = 3.;
+    let h0 = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    let hc = na::Matrix3::zeros();
+    let f0 = na::matrix![0., 1., 0.; 1., 0., 1.; 0., 1., 0.].cast();
+
+    let h = h0 + hc + f0;
+    let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    // let f1 = na::Matrix3::zeros();
+
+    let a = na::DMatrix::from_fn(8, 8, |i, j| {
+        (GELLMANNMATRICES[i].adjoint() * lindbladian(&h, &l, &GELLMANNMATRICES[j]))
+            .trace()
+            .re
+    });
+
+    let p = lyapunov::lyapunovequation(&a, &(-na::DMatrix::identity(8, 8)))?;
+    println!("{p}");
+    println!("{}", p.symmetric_eigenvalues());
+
     Ok(())
 }
