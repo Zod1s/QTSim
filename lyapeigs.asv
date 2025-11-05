@@ -1,0 +1,26 @@
+%% Initialisation
+clear all
+close all
+clc
+
+%% Gell-Mann matrices
+gellmann(:, :, 1) = [0 1 0; 1 0 0; 0 0 0];
+gellmann(:, :, 2) = [0 -1j 0; 1j 0 0; 0 0 0];
+gellmann(:, :, 3) = [1 0 0; 0 -1 0; 0 0 0];
+gellmann(:, :, 4) = [0 0 1; 0 0 0; 1 0 0];
+gellmann(:, :, 5) = [0 0 -1j; 0 0 0; 1j 0 0];
+gellmann(:, :, 6) = [0 0 0; 0 0 1; 0 1 0];
+gellmann(:, :, 7) = [0 0 0; 0 0 -1j; 0 1j 0];
+gellmann(:, :, 8) = [1 / sqrt(3) 0 0; 0 1 / sqrt(3) 0; 0 0 -2 / sqrt(3)];
+   
+for i = 1:8
+    disp(gellmann(:, :, i))
+end
+
+%% Hamiltonian and measurement operator
+H = diag([-1, 2, 3]);
+L = diag([-1, 2, 3);
+F0 = [0 1 1; 1 0 1; 1 1 0];
+H = H + F0;
+
+lindbladian = @(x) -1j * (H * x - x * H);

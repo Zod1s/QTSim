@@ -21,9 +21,13 @@ const TOL: f64 = 1e-10_f64;
 
 const ZERO: na::Complex<f64> = na::Complex::ZERO;
 const ONE: na::Complex<f64> = na::Complex::ONE;
+const SQRT2: na::Complex<f64> = na::Complex::new(1. / std::f64::consts::SQRT_2, 0.);
 const I: na::Complex<f64> = na::Complex::I;
+const ISQRT2: na::Complex<f64> = na::Complex::new(0., 1. / std::f64::consts::SQRT_2);
 const MONE: na::Complex<f64> = na::Complex::new(-1., 0.);
+const MSQRT2: na::Complex<f64> = na::Complex::new(-1. / std::f64::consts::SQRT_2, 0.);
 const MI: na::Complex<f64> = na::Complex::new(0., -1.);
+const MISQRT2: na::Complex<f64> = na::Complex::new(0., -1. / std::f64::consts::SQRT_2);
 const FRAC_1_SQRT_3: f64 = 0.577350269189625764509148780501957456_f64;
 
 pub const PAULI_X: QubitOperator = na::Matrix2::new(ZERO, ONE, ONE, ZERO);
@@ -33,29 +37,29 @@ pub const PAULI_Y: QubitOperator = na::Matrix2::new(ZERO, MI, I, ZERO);
 pub const PAULI_Z: QubitOperator = na::Matrix2::new(ONE, ZERO, ZERO, MONE);
 
 pub const GELLMANN1: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, ONE, ZERO, ONE, ZERO, ZERO, ZERO, ZERO, ZERO);
+    na::Matrix3::new(ZERO, SQRT2, ZERO, SQRT2, ZERO, ZERO, ZERO, ZERO, ZERO);
 pub const GELLMANN2: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, MI, ZERO, I, ZERO, ZERO, ZERO, ZERO, ZERO);
+    na::Matrix3::new(ZERO, MISQRT2, ZERO, ISQRT2, ZERO, ZERO, ZERO, ZERO, ZERO);
 pub const GELLMANN3: Operator<na::Const<3>> =
-    na::Matrix3::new(ONE, ZERO, MONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO);
+    na::Matrix3::new(SQRT2, ZERO, ZERO, ZERO, MSQRT2, ZERO, ZERO, ZERO, ZERO);
 pub const GELLMANN4: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, ZERO, ONE, ZERO, ZERO, ZERO, ONE, ZERO, ZERO);
+    na::Matrix3::new(ZERO, ZERO, SQRT2, ZERO, ZERO, ZERO, SQRT2, ZERO, ZERO);
 pub const GELLMANN5: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, ZERO, MI, ZERO, ZERO, ZERO, I, ZERO, ZERO);
+    na::Matrix3::new(ZERO, ZERO, MISQRT2, ZERO, ZERO, ZERO, ISQRT2, ZERO, ZERO);
 pub const GELLMANN6: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ZERO, ONE, ZERO);
+    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, SQRT2, ZERO, SQRT2, ZERO);
 pub const GELLMANN7: Operator<na::Const<3>> =
-    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, MI, ZERO, I, ZERO);
+    na::Matrix3::new(ZERO, ZERO, ZERO, ZERO, ZERO, MISQRT2, ZERO, ISQRT2, ZERO);
 pub const GELLMANN8: Operator<na::Const<3>> = na::Matrix3::new(
-    na::Complex::new(1. / FRAC_1_SQRT_3, 0.),
+    na::Complex::new(FRAC_1_SQRT_3 / std::f64::consts::SQRT_2, 0.),
     ZERO,
     ZERO,
     ZERO,
-    na::Complex::new(1. / FRAC_1_SQRT_3, 0.),
+    na::Complex::new(FRAC_1_SQRT_3 / std::f64::consts::SQRT_2, 0.),
     ZERO,
     ZERO,
     ZERO,
-    na::Complex::new(2. / FRAC_1_SQRT_3, 0.),
+    na::Complex::new(-FRAC_1_SQRT_3 * std::f64::consts::SQRT_2, 0.),
 );
 
 pub const GELLMANNMATRICES: [Operator<na::Const<3>>; 8] = [
@@ -144,7 +148,6 @@ where
 {
     let x = random_unit_complex_vector::<D>();
     let x = &x * x.adjoint();
-    let x = &x / x.trace();
 
     let mut decomp = x.symmetric_eigen();
     decomp.eigenvalues = decomp.eigenvalues.map(|e| e.max(0.));

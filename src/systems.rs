@@ -8,5 +8,6 @@ pub mod qubitsequentialcontrol;
 pub mod qubitwisemanfme;
 pub mod qubitwisemansse;
 pub mod qubitwisemanssebase;
+pub mod timefeedback;
 pub mod wisemanfme;
 pub mod wisemansse;
