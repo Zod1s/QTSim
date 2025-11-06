@@ -16,7 +16,7 @@ gellmann(:, :, 8) = [1 / sqrt(3) 0 0; 0 1 / sqrt(3) 0; 0 0 -2 / sqrt(3)] / sqrt(
 %% Hamiltonian and measurement operator
 H = diag([-1, 2, 3]);
 L = diag([-1, 2, 3]);
-F0 = [0 1 0; 1 0 1; 0 1 0];
+F0 = [0 1 1; 1 0 1; 1 1 0];
 H = H + F0;
 
 lindbladian = @(x) -1j * (H * x - x * H) + L * x * L' - 0.5 * (L' * L * x + x * L' * L);

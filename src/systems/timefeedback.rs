@@ -5,7 +5,6 @@ use crate::utils::*;
 use crate::wiener;
 use statrs::distribution::{ContinuousCDF, Normal};
 
-#[derive(Debug)]
 /// New feedback with both F0 and F1 for multilevel systems, using the actual yt
 pub struct Controller<'a, R: wiener::Rng + ?Sized, const D: usize>
 where
@@ -110,28 +109,79 @@ where
         drho: &mut State<na::Const<D>>,
         dw: &Vec<f64>,
     ) {
-        let avg = if t > self.tf {
-            self.y / (self.count as f64 * dt)
-        } else {
-            0.
-        };
+        let corr = if !self.is_active
+        // && t - self.last_active_time < self.last_dys.len() as f64 * dt
+        {
+            // If the control is inactive and not enough time has passed since we have turned it
+            // off, the control is still set to zero independently of the measurements
+            // 0.
+            // } else if !self.is_active {
+            let avg = if t > self.tf {
+                self.y / (self.count as f64 * dt)
+            } else {
+                0.
+            };
 
-        let corr = if avg <= self.lb {
-            0.
-        } else if avg >= self.ub {
-            1.
-        } else if self.last_set != LastSet::GeGamma2Set {
-            0.
-        } else {
-            1.
-        };
+            let corr = if avg <= self.lb {
+                0.
+            } else if avg >= self.ub {
+                1.
+            } else if self.last_set != LastSet::GeGamma2Set {
+                0.
+            } else {
+                1.
+            };
 
-        self.last_set = if avg <= self.lb {
-            LastSet::LeGammaSet
-        } else if avg >= self.ub {
-            LastSet::GeGamma2Set
+            self.last_set = if avg <= self.lb {
+                LastSet::LeGammaSet
+            } else if avg >= self.ub {
+                LastSet::GeGamma2Set
+            } else {
+                self.last_set
+            };
+
+            if corr == 1. {
+                self.last_active_time = t;
+                self.is_active = true;
+            }
+
+            corr
+        } else if t - self.last_active_time < self.max_active_time {
+            let avg = if t > self.tf {
+                self.y / (self.count as f64 * dt)
+            } else {
+                0.
+            };
+
+            let corr = if avg <= self.lb {
+                0.
+            } else if avg >= self.ub {
+                1.
+            } else if self.last_set != LastSet::GeGamma2Set {
+                0.
+            } else {
+                1.
+            };
+
+            self.last_set = if avg <= self.lb {
+                LastSet::LeGammaSet
+            } else if avg >= self.ub {
+                LastSet::GeGamma2Set
+            } else {
+                self.last_set
+            };
+
+            if corr == 0. {
+                self.last_active_time = t;
+                self.is_active = false;
+            }
+
+            corr
         } else {
-            self.last_set
+            self.last_active_time = t;
+            self.is_active = false;
+            self.last_set = LastSet::NotSet;
+            0.
         };
 
         let h_hat = self.h_hat + self.f0.scale(corr);

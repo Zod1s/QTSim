@@ -28,20 +28,18 @@ pub fn actualfeed() -> SolverResult<()> {
     // let hc2 = -PAULI_Y.scale(0.1);
     // let f12 = -PAULI_Y.scale(0.1);
 
-    // let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let hc = na::Matrix3::zeros();
-    // let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.]
-    //     .cast()
-    //     .scale(2.);
-    // let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let f1 = na::Matrix3::zeros();
-
-    let a: f64 = 0.05;
-    let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1., 2., 3.)).cast();
-    let hc = na::matrix![na::Complex::ONE, na::Complex::new(0., 0.5 * a), -na::Complex::new(0., a.powi(2)); na::Complex::new(0., -0.5 * a), na::Complex::ONE.scale(-2.), na::Complex::new(0., -2.5 * a); na::Complex::new(0., a.powi(2)), na::Complex::new(0., 2.5 * a), na::Complex::new(-3., 0.)];
-    let l = na::matrix![-1., a, 0.; a, 2., a; 0., a, 3.].cast();
+    let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    let hc = na::Matrix3::zeros();
     let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
-    let f1 = na::matrix![0., a, 0.; -a, 0., a; 0., -a, 0.].cast() * na::Complex::I;
+    let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    let f1 = na::Matrix3::zeros();
+
+    // let a: f64 = 0.05;
+    // let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1., 2., 3.)).cast();
+    // let hc = na::matrix![na::Complex::ONE, na::Complex::new(0., 0.5 * a), -na::Complex::new(0., a.powi(2)); na::Complex::new(0., -0.5 * a), na::Complex::ONE.scale(-2.), na::Complex::new(0., -2.5 * a); na::Complex::new(0., a.powi(2)), na::Complex::new(0., 2.5 * a), na::Complex::new(-3., 0.)];
+    // let l = na::matrix![-1., a, 0.; a, 2., a; 0., a, 3.].cast();
+    // let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
+    // let f1 = na::matrix![0., a, 0.; -a, 0., a; 0., -a, 0.].cast() * na::Complex::I;
 
     // let rho1 = na::Matrix2::new(1.0, 0.0, 0.0, 0.0).cast();
     // let rho2 = na::Matrix2::new(0.0, 0.0, 0.0, 1.0).cast();
@@ -58,7 +56,7 @@ pub fn actualfeed() -> SolverResult<()> {
     // let x0bloch = to_bloch(&x0)?;
 
     let num_tries = 10;
-    let final_time: f64 = 60.0;
+    let final_time: f64 = 10.0;
     let dt = 0.0001;
     let decimation = 60;
 
@@ -80,9 +78,6 @@ pub fn actualfeed() -> SolverResult<()> {
     // let beta3 = 0.9;
     // let epsilon3 = 0.1 * (y1 - y2).abs();
 
-    let mut not_converged = 0;
-    let conv_threshold = 0.7;
-
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
         "#ff0037", "#e1ff00",
@@ -94,15 +89,10 @@ pub fn actualfeed() -> SolverResult<()> {
             .unwrap(),
     );
 
-    // let mut rng1 = rand::rng();
-    // let mut rng2 = rand::rng();
-    let mut rng1 = StdRng::seed_from_u64(0);
-    // let mut rng3 = rand::rng();
-    let mut rng2 = StdRng::seed_from_u64(0);
-    // let mut rng3 = StdRng::seed_from_u64(0);
-
     for i in 0..num_tries {
         bar.inc(1);
+        let mut rng1 = StdRng::seed_from_u64(i);
+        let mut rng2 = StdRng::seed_from_u64(i);
         // let mut system = systems::qubitcompletefeedback::QubitFeedback::new(
         //     h,
         //     l2,
@@ -156,10 +146,6 @@ pub fn actualfeed() -> SolverResult<()> {
             .iter()
             .map(|rho| fidelity(rho, &rhod))
             .collect::<Vec<f64>>();
-
-        if sobsv[sobsv.len() - 1] < conv_threshold {
-            not_converged += 1;
-        }
 
         // let mut controlledsystem2 = systems::qubitcompletefeedback::QubitFeedback::new(
         //     h, l2, hc2, f0, f12, y1, y2, gamma3, beta3, epsilon3, &mut rng3,
@@ -232,6 +218,5 @@ pub fn actualfeed() -> SolverResult<()> {
         .set_label_y("Fidelity")
         .set_label_x("Time");
 
-    println!("Not converged: {not_converged}");
-    constrainedlayout("Images/multilevelwmreal", &mut plot, false)
+    constrainedlayout("Images/multilevelwmreal", &mut plot, true)
 }

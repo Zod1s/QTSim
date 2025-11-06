@@ -5,6 +5,7 @@ pub mod multilevel;
 pub mod newfeedback;
 pub mod output;
 pub mod qnd;
+pub mod timebased;
 pub mod wmfme;
 pub mod wmseq;
 pub mod wmsse;
