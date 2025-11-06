@@ -164,3 +164,8 @@ pub fn lyapunovtrend() -> SolverResult<()> {
 
     Ok(())
 }
+
+// let b = GELLMANNMATRICES
+//     .iter()
+//     .map(|matrix| (matrix * l_hat).trace().re.powi(2))
+//     .sum();
