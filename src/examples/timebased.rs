@@ -19,7 +19,7 @@ pub fn timebased() -> SolverResult<()> {
         na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast::<na::Complex<f64>>();
     let f1 = na::Matrix3::zeros();
 
-    let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
+    let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast::<na::Complex<f64>>();
 
     // let x0 = na::Vector3::new(1., 1., 1.).cast();
     // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
@@ -35,10 +35,10 @@ pub fn timebased() -> SolverResult<()> {
     let gamma = 0.2 * delta;
     let y1 = -2.;
     let epsilon = delta * 1.;
-    let beta = 0.4;
+    let beta = 0.2;
 
     let nu = 0.9;
-    let theta = nu * (l.trace().re.abs() / d + delta - gamma);
+    let theta = nu * (delta - gamma - l.trace().re.abs() / d - (rhod * l).trace().re.abs());
     let b = GELLMANNMATRICES
         .iter()
         .map(|matrix| (matrix * l).trace().re.powi(2))
@@ -85,7 +85,8 @@ pub fn timebased() -> SolverResult<()> {
 
         let obsv = rho_out
             .iter()
-            .map(|rho| fidelity(rho, &rhod))
+            .map(|rho| 2. * (rho * l).trace().re)
+            // .map(|rho| fidelity(rho, &rhod))
             .collect::<Vec<f64>>();
 
         let mut controlledsystem = systems::timefeedback::Controller::new(
@@ -100,7 +101,8 @@ pub fn timebased() -> SolverResult<()> {
 
         let cobsv = crho_out
             .iter()
-            .map(|rho| fidelity(rho, &rhod))
+            .map(|rho| 2. * (rho * l).trace().re)
+            // .map(|rho| fidelity(rho, &rhod))
             .collect::<Vec<f64>>();
 
         let mut controlledsystem2 = systems::multilevelcompletefeedback::Feedback2::new(
@@ -115,7 +117,8 @@ pub fn timebased() -> SolverResult<()> {
 
         let cobsv2 = crho_out2
             .iter()
-            .map(|rho| fidelity(rho, &rhod))
+            .map(|rho| 2. * (rho * l).trace().re)
+            // .map(|rho| fidelity(rho, &rhod))
             .collect::<Vec<f64>>();
 
         let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)

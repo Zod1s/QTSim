@@ -39,7 +39,8 @@ pub fn vectorisationexample() -> SolverResult<()> {
     let maxchi20 = d - 1.;
 
     for i in 0..num_tries {
-        let x0 = random_pure_state::<na::U3>();
+        // let x0 = random_pure_state::<na::U3>();
+        let x0 = na::Matrix3::from_diagonal(&na::Vector3::new(0., 0., 1.)).cast();
 
         let system = systems::wisemanfme::WisemanFME::new(h, l, f1);
         let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
@@ -113,10 +114,11 @@ pub fn lyapunovtrend() -> SolverResult<()> {
     let lmax: f64 = 1.8612;
 
     let mut plot = plotpy::Plot::new();
-    plot.set_log_y(true);
+    // plot.set_log_y(true);
 
     for i in 0..num_tries {
-        let x0 = random_pure_state::<na::U3>();
+        // let x0 = random_pure_state::<na::U3>();
+        let x0 = na::Matrix3::from_diagonal(&na::Vector3::new(0., 0., 1.)).cast();
 
         let system = systems::wisemanfme::WisemanFME::new(h, l, f1);
         let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);

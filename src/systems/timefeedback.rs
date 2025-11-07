@@ -109,13 +109,12 @@ where
         drho: &mut State<na::Const<D>>,
         dw: &Vec<f64>,
     ) {
-        let corr = if !self.is_active
-        // && t - self.last_active_time < self.last_dys.len() as f64 * dt
+        let corr = if !self.is_active && t - self.last_active_time < self.last_dys.len() as f64 * dt
         {
             // If the control is inactive and not enough time has passed since we have turned it
             // off, the control is still set to zero independently of the measurements
-            // 0.
-            // } else if !self.is_active {
+            0.
+        } else if !self.is_active {
             let avg = if t > self.tf {
                 self.y / (self.count as f64 * dt)
             } else {
