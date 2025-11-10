@@ -23,7 +23,7 @@ pub fn timebased() -> SolverResult<()> {
 
     // let x0 = na::Vector3::new(1., 1., 1.).cast();
     // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
-    let x0 = random_pure_state::<na::U3>();
+    let x0 = random_pure_state::<na::U3>().scale(0.5) + random_pure_state::<na::U3>().scale(0.5);
 
     let num_tries = 10;
     let final_time: f64 = 10.0;

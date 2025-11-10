@@ -1,0 +1,26 @@
+|> Rework multilevel proof of Proposition 3.2.13
+
+|> Algorithmic cooling
+|x https://arxiv.org/pdf/2503.24330
+|x https://arxiv.org/pdf/2203.08114
+
+Filtering-based (?) (actually based on phase-estimation circuit)
+|x https://journals.aps.org/prl/pdf/10.1103/PhysRevLett.102.130503
+|x https://arxiv.org/pdf/1712.03193
+|x https://quantum-journal.org/papers/q-2020-12-14-372/pdf/
+
+|x https://journals.aps.org/pra/abstract/10.1103/yrlx-82zx (measurement based, seems like discrete projective measurements, not continuous, so different framework. Also it is formally shown only for qubits)
+
+|x https://journals.aps.org/rmp/pdf/10.1103/RevModPhys.90.015002 (review, cites quantum annealing with original papers and stochastic context)
+|x https://www.sciencedirect.com/science/article/pii/0304414989900409 (quantum stochastic optimisation)
+|x https://www2.stat.duke.edu/~scs/Courses/Stat376/Papers/TemperAnneal/KirkpatrickAnnealScience1983.pdf (optimisation by simulated annealing)
+|x https://homes.di.unimi.it/~cesabian/Pubblicazioni/quantumAnnealing.pdf (numerical implementation of quantum annealing)
+|x https://arxiv.org/pdf/quant-ph/0001106 (adiabatic evolution in quantum)
+|x https://arxiv.org/pdf/2012.09265 (variational algorithms)
+
+Feedback quantum cooling
+|- https://arxiv.org/pdf/2503.04270 (it should have reasonable models to test our framework (it may be infinite-dimensional (how to simulate???)))
+
+|> It seems like adding a delay between subsequent activations of the feedback may help convergence, needs to study why and which are sensible values for this delay
+
+|> Understand what reduced efficiency implies

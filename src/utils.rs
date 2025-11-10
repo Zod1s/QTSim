@@ -152,7 +152,10 @@ where
     let mut decomp = x.symmetric_eigen();
     decomp.eigenvalues = decomp.eigenvalues.map(|e| e.max(0.));
     let x = decomp.recompose();
-    &x / x.trace()
+    for el in x.diagonal().iter_mut() {
+        *el = na::Complex::new(el.re, 0.);
+    }
+    x.scale(1. / x.trace().re)
 }
 
 pub fn random_vector_3() -> na::SVector<f64, 3> {
