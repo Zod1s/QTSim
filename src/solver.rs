@@ -242,6 +242,32 @@ where
         Ok(())
     }
 
+    // pub fn step(&mut self) -> SolverResult<()> {
+    //     // TODO modify to handle multiple outputs
+    //     let mut dw = Vec::new();
+    //     self.f.generate_noises(self.step_size, &mut dw);
+    //     let mut dy = self.f.measurement(&self.x0, self.step_size, dw[0]);
+    //
+    //     self.results.push(self.t0, self.x0.clone(), dy);
+    //
+    //     let mut t = self.t0;
+    //     let mut x = self.x0.clone();
+    //     let shape = self.x0.shape_generic();
+    //     let mut dx = na::OMatrix::zeros_generic(shape.0, shape.1);
+    //
+    //     for _ in 0..self.num_steps {
+    //         self.f.system(t, self.step_size, &x, &mut dx, &dw);
+    //         t += self.step_size;
+    //         x += &dx;
+    //         self.f.generate_noises(self.step_size, &mut dw);
+    //         dy = self.f.measurement(&x, self.step_size, dw[0]);
+    //
+    //         self.results.push(t, x.clone(), dy);
+    //     }
+    //
+    //     Ok(())
+    // }
+
     /// Getter for the independent variable's output.
     pub fn t_out(&self) -> &Vec<f64> {
         self.results.get().0

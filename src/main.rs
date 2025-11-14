@@ -10,6 +10,5 @@ mod utils;
 mod wiener;
 
 fn main() -> utils::SolverResult<()> {
-    examples::timebased::timebased()
-    // kron::lyapunovtrend()
+    examples::actualfeed::actualfeed()
 }

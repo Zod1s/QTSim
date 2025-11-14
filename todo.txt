@@ -19,8 +19,13 @@ Filtering-based (?) (actually based on phase-estimation circuit)
 |x https://arxiv.org/pdf/2012.09265 (variational algorithms)
 
 Feedback quantum cooling
-|- https://arxiv.org/pdf/2503.04270 (it should have reasonable models to test our framework (it may be infinite-dimensional (how to simulate???)))
+|- https://arxiv.org/pdf/2503.04270 (it should have reasonable models to test our framework (it may be infinite-dimensional (how to simulate??? Not only, but our feedback only works for now in the finite-dimensional setting)))
+|- https://journals.aps.org/pra/pdf/10.1103/PhysRevA.60.2700 (gives some models, but they are infinite-dimensional, compares filtering-based and wiseman-milburn)
+|- https://www.nature.com/articles/s41586-021-03602-3
+|- https://iopscience.iop.org/article/10.1088/1367-2630/aa6acb/pdf
 
 |> It seems like adding a delay between subsequent activations of the feedback may help convergence, needs to study why and which are sensible values for this delay
 
 |> Understand what reduced efficiency implies
+
+|> Maybe Kalman filter to estimate Tr[L\rho], since we actually need the expectation of the observable and we measure it with noise, so a Kalman filter could prove useful
