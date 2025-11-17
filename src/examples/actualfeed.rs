@@ -2,13 +2,21 @@ use crate::plots::constrainedlayout;
 use crate::solver::{Rk4, StochasticSolver};
 use crate::systems;
 use crate::utils::*;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
+
+const NUMTHREADS: usize = 8;
 
 /// \[rho_d, L + L^dag\] = 0 case
 pub fn actualfeed() -> SolverResult<()> {
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+        .build_global()
+        .expect("Could not access plot");
     let mut plot = plotpy::Plot::new();
 
     let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
@@ -29,10 +37,11 @@ pub fn actualfeed() -> SolverResult<()> {
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
     // let decimation = 60;
 
-    let mut avg_free_fidelity = vec![0.; num_steps + 1];
-    let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity = vec![0.; num_steps + 1];
-    let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
+    let avg_free_fidelity = Arc::new(Mutex::new(vec![0.; num_steps + 1]));
+    let avg_ctrl_fidelity = Arc::new(Mutex::new(vec![0.; num_steps + 1]));
+    let avg_time_fidelity = Arc::new(Mutex::new(vec![0.; num_steps + 1]));
+    let avg_time_fidelity2 = Arc::new(Mutex::new(vec![0.; num_steps + 1]));
+    let avg_ideal_fidelity = Arc::new(Mutex::new(vec![0.; num_steps + 1]));
 
     let delta = 3.;
     let gamma = 0.2 * delta;
@@ -40,6 +49,7 @@ pub fn actualfeed() -> SolverResult<()> {
     let epsilon = delta * 1.;
     let beta = 0.9;
     let k = 5000;
+    let k2 = 10000;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -56,102 +66,170 @@ pub fn actualfeed() -> SolverResult<()> {
         bar.inc(1);
         let x0 = random_pure_state::<na::U3>();
 
-        for j in 0..num_inner_tries {
-            let mut rng1 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng2 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng3 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng4 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut system = systems::multilevelcompletefeedback::Feedback::new(
-                h,
-                l,
-                hc,
-                na::Matrix3::zeros(),
-                f1,
-                y1,
-                delta,
-                gamma,
-                beta,
-                epsilon,
-                &mut rng1,
-            );
+        // for j in 0..num_inner_tries {
+        // }
+        (0..num_inner_tries)
+            .into_par_iter()
+            .map(|j| -> Result<(), SolverError> {
+                let mut rng1 = StdRng::seed_from_u64(num_inner_tries * i + j);
+                let mut rng2 = StdRng::seed_from_u64(num_inner_tries * i + j);
+                let mut rng3 = StdRng::seed_from_u64(num_inner_tries * i + j);
+                let mut rng4 = StdRng::seed_from_u64(num_inner_tries * i + j);
+                let mut rng5 = StdRng::seed_from_u64(num_inner_tries * i + j);
+                let mut system = systems::multilevelcompletefeedback::Feedback::new(
+                    h,
+                    l,
+                    hc,
+                    na::Matrix3::zeros(),
+                    f1,
+                    y1,
+                    delta,
+                    gamma,
+                    beta,
+                    epsilon,
+                    &mut rng1,
+                );
 
-            let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-            solver.integrate()?;
+                let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+                solver.integrate()?;
 
-            let (t_out, rho_out, dy_out) = solver.results().get();
+                let (t_out, rho_out, dy_out) = solver.results().get();
 
-            let obsv = rho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+                let obsv = rho_out
+                    .iter()
+                    .map(|rho| fidelity(rho, &rhod))
+                    .collect::<Vec<f64>>();
 
-            avg_free_fidelity = avg_free_fidelity
-                .iter()
-                .zip(&obsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+                let mut free_fidelity = avg_free_fidelity
+                    .lock()
+                    .expect("Could not access free fidelity lock");
+                *free_fidelity = free_fidelity
+                    .iter()
+                    .zip(&obsv)
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<f64>>();
+                // avg_free_fidelity = avg_free_fidelity
+                //     .iter()
+                //     .zip(&obsv)
+                //     .map(|(x, y)| x + y)
+                //     .collect::<Vec<f64>>();
 
-            let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
-                h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
-            );
-            let mut controlledsolver =
-                StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-            controlledsolver.integrate()?;
+                let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
+                    h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
+                );
+                let mut controlledsolver =
+                    StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
+                controlledsolver.integrate()?;
 
-            let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
+                let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
 
-            let sobsv = srho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+                let sobsv = srho_out
+                    .iter()
+                    .map(|rho| fidelity(rho, &rhod))
+                    .collect::<Vec<f64>>();
 
-            avg_ctrl_fidelity = avg_ctrl_fidelity
-                .iter()
-                .zip(&sobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+                let mut ctrl_fidelity = avg_ctrl_fidelity
+                    .lock()
+                    .expect("Could not access ctrl fidelity lock");
+                *ctrl_fidelity = ctrl_fidelity
+                    .iter()
+                    .zip(&sobsv)
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<f64>>();
+                // avg_ctrl_fidelity = avg_ctrl_fidelity
+                //     .iter()
+                //     .zip(&sobsv)
+                //     .map(|(x, y)| x + y)
+                //     .collect::<Vec<f64>>();
 
-            let mut timecontrolledsystem = systems::multilevelcompletefeedback::Feedback2::new(
-                h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng3,
-            );
-            let mut timecontrolledsolver =
-                StochasticSolver::new(&mut timecontrolledsystem, 0.0, x0, final_time, dt);
-            timecontrolledsolver.integrate()?;
+                let mut timecontrolledsystem = systems::multilevelcompletefeedback::Feedback2::new(
+                    h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng3,
+                );
+                let mut timecontrolledsolver =
+                    StochasticSolver::new(&mut timecontrolledsystem, 0.0, x0, final_time, dt);
+                timecontrolledsolver.integrate()?;
 
-            let (tt_out, trho_out, tdy_out) = timecontrolledsolver.results().get();
+                let (tt_out, trho_out, tdy_out) = timecontrolledsolver.results().get();
 
-            let tobsv = trho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+                let tobsv = trho_out
+                    .iter()
+                    .map(|rho| fidelity(rho, &rhod))
+                    .collect::<Vec<f64>>();
 
-            avg_time_fidelity = avg_time_fidelity
-                .iter()
-                .zip(&tobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+                let mut time_fidelity = avg_time_fidelity
+                    .lock()
+                    .expect("Could not access time fidelity lock");
+                *time_fidelity = time_fidelity
+                    .iter()
+                    .zip(&tobsv)
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<f64>>();
+                // avg_time_fidelity = avg_time_fidelity
+                //     .iter()
+                //     .zip(&tobsv)
+                //     .map(|(x, y)| x + y)
+                //     .collect::<Vec<f64>>();
 
-            let mut idealcontrolledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
-                h, l, hc, f0, f1, y1, delta, gamma, &mut rng4,
-            );
+                let mut idealcontrolledsystem =
+                    systems::idealmultilevelcompletefeedback::Feedback::new(
+                        h, l, hc, f0, f1, y1, delta, gamma, &mut rng4,
+                    );
 
-            let mut idealcontrolledsolver =
-                StochasticSolver::new(&mut idealcontrolledsystem, 0.0, x0, final_time, dt);
-            idealcontrolledsolver.integrate()?;
+                let mut idealcontrolledsolver =
+                    StochasticSolver::new(&mut idealcontrolledsystem, 0.0, x0, final_time, dt);
+                idealcontrolledsolver.integrate()?;
 
-            let (it_out, irho_out, idy_out) = idealcontrolledsolver.results().get();
+                let (it_out, irho_out, idy_out) = idealcontrolledsolver.results().get();
 
-            let iobsv = irho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+                let iobsv = irho_out
+                    .iter()
+                    .map(|rho| fidelity(rho, &rhod))
+                    .collect::<Vec<f64>>();
 
-            avg_ideal_fidelity = avg_ideal_fidelity
-                .iter()
-                .zip(&iobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
-        }
+                let mut ideal_fidelity = avg_ideal_fidelity
+                    .lock()
+                    .expect("Could not access ideal fidelity lock");
+                *ideal_fidelity = ideal_fidelity
+                    .iter()
+                    .zip(&iobsv)
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<f64>>();
+                // avg_ideal_fidelity = avg_ideal_fidelity
+                //     .iter()
+                //     .zip(&iobsv)
+                //     .map(|(x, y)| x + y)
+                //     .collect::<Vec<f64>>();
+
+                let mut timecontrolledsystem2 = systems::multilevelcompletefeedback::Feedback2::new(
+                    h, l, hc, f0, f1, y1, k2, delta, gamma, beta, epsilon, &mut rng3,
+                );
+                let mut timecontrolledsolver2 =
+                    StochasticSolver::new(&mut timecontrolledsystem2, 0.0, x0, final_time, dt);
+                timecontrolledsolver2.integrate()?;
+
+                let (tt_out2, trho_out2, tdy_out2) = timecontrolledsolver2.results().get();
+
+                let tobsv2 = trho_out2
+                    .iter()
+                    .map(|rho| fidelity(rho, &rhod))
+                    .collect::<Vec<f64>>();
+
+                let mut time2_fidelity = avg_time_fidelity2
+                    .lock()
+                    .expect("Could not access time2 fidelity lock");
+                *time2_fidelity = time2_fidelity
+                    .iter()
+                    .zip(&tobsv2)
+                    .map(|(x, y)| x + y)
+                    .collect::<Vec<f64>>();
+                // avg_time_fidelity2 = avg_time_fidelity2
+                //     .iter()
+                //     .zip(&tobsv2)
+                //     .map(|(x, y)| x + y)
+                //     .collect::<Vec<f64>>();
+                Ok(())
+            })
+            .collect::<Result<Vec<()>, SolverError>>()?;
 
         // let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
         //     .map(|i| t_out[i * decimation])
@@ -187,22 +265,37 @@ pub fn actualfeed() -> SolverResult<()> {
         .map(|n| (n as f64) * dt)
         .collect::<Vec<f64>>();
 
-    avg_free_fidelity = avg_free_fidelity
+    let avg_free_fidelity = avg_free_fidelity
+        .lock()
+        .expect("Could not take free lock while plotting")
         .iter()
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
-    avg_ctrl_fidelity = avg_ctrl_fidelity
+    let avg_ctrl_fidelity = avg_ctrl_fidelity
+        .lock()
+        .expect("Could not take ctrl lock while plotting")
         .iter()
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
-    avg_time_fidelity = avg_time_fidelity
+    let avg_time_fidelity = avg_time_fidelity
+        .lock()
+        .expect("Could not take time lock while plotting")
         .iter()
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
-    avg_ideal_fidelity = avg_ideal_fidelity
+    let avg_ideal_fidelity = avg_ideal_fidelity
+        .lock()
+        .expect("Could not take ideal lock while plotting")
+        .iter()
+        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
+        .collect::<Vec<f64>>();
+
+    let avg_time_fidelity2 = avg_time_fidelity2
+        .lock()
+        .expect("Could not take time2 lock while plotting")
         .iter()
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
@@ -219,7 +312,7 @@ pub fn actualfeed() -> SolverResult<()> {
 
     let mut time_curve = plotpy::Curve::new();
     time_curve
-        .set_label("Windowed evolution")
+        .set_label(&format!("Windowed evolution, k = {}", k))
         .draw(&t_out, &avg_time_fidelity);
 
     let mut ideal_curve = plotpy::Curve::new();
@@ -227,10 +320,16 @@ pub fn actualfeed() -> SolverResult<()> {
         .set_label("Ideal evolution")
         .draw(&t_out, &avg_ideal_fidelity);
 
+    let mut time_curve2 = plotpy::Curve::new();
+    time_curve2
+        .set_label(&format!("Windowed evolution, k = {}", k2))
+        .draw(&t_out, &avg_time_fidelity2);
+
     plot.add(&free_curve)
         .add(&ctrl_curve)
         .add(&time_curve)
         .add(&ideal_curve)
+        .add(&time_curve2)
         .legend();
 
     constrainedlayout("Images/multilevelwmreal", &mut plot, true)
