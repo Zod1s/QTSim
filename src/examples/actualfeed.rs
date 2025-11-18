@@ -22,7 +22,7 @@ pub fn actualfeed() -> SolverResult<()> {
     // let x0 = na::Vector3::new(1., 1., 1.).cast();
     // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
 
-    let num_tries = 50;
+    let num_tries = 500;
     let num_inner_tries = 10;
     let final_time: f64 = 15.0;
     let dt = 0.0001;
@@ -39,7 +39,7 @@ pub fn actualfeed() -> SolverResult<()> {
     let gamma = 0.2 * delta;
     let y1 = -2.;
     let epsilon = delta * 1.;
-    let beta = 0.9;
+    let beta = 0.6;
     let k = 5000;
     let k2 = 10000;
 
