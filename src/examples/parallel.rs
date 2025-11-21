@@ -9,13 +9,13 @@ use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
-const NUMTHREADS: usize = 8;
+const NUMTHREADS: usize = 24;
 
 pub fn parallel() -> SolverResult<()> {
     rayon::ThreadPoolBuilder::new()
         .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
         .build_global()
-        .expect("Could not access plot");
+        .expect("Could not create threadpool");
     let mut plot = plotpy::Plot::new();
 
     let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
@@ -26,15 +26,11 @@ pub fn parallel() -> SolverResult<()> {
 
     let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
 
-    // let x0 = na::Vector3::new(1., 1., 1.).cast();
-    // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
-
-    let num_tries = 500;
-    let num_inner_tries = 1;
+    let num_tries = 250;
+    let num_inner_tries = 10;
     let final_time: f64 = 10.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
-    // let decimation = 60;
 
     let mut avg_free_fidelity = vec![0.; num_steps + 1];
     let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
@@ -66,6 +62,8 @@ pub fn parallel() -> SolverResult<()> {
     let mut err3 = Ok(());
     let mut err4 = Ok(());
     let mut err5 = Ok(());
+
+    plot.set_log_y(true);
 
     rayon::scope(|s| {
         s.spawn(|s| {
