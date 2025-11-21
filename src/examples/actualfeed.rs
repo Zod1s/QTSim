@@ -23,8 +23,8 @@ pub fn actualfeed() -> SolverResult<()> {
     // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
 
     let num_tries = 500;
-    let num_inner_tries = 10;
-    let final_time: f64 = 15.0;
+    let num_inner_tries = 1;
+    let final_time: f64 = 10.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
     // let decimation = 60;
@@ -56,7 +56,7 @@ pub fn actualfeed() -> SolverResult<()> {
 
     for i in 0..num_tries {
         bar.inc(1);
-        let x0 = random_pure_state::<na::U3>();
+        let x0 = random_pure_state::<na::U3>(Some(i));
 
         for j in 0..num_inner_tries {
             let mut rng1 = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -267,5 +267,5 @@ pub fn actualfeed() -> SolverResult<()> {
         .add(&time_curve2)
         .legend();
 
-    constrainedlayout("Images/multilevelwmreal", &mut plot, true)
+    constrainedlayout("Images/multilevelwmreal1", &mut plot, true)
 }

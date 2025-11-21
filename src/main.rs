@@ -10,5 +10,5 @@ mod utils;
 mod wiener;
 
 fn main() -> utils::SolverResult<()> {
-    examples::actualfeed::actualfeed()
+    examples::parallel::parallel()
 }

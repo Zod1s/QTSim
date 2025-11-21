@@ -113,6 +113,37 @@ where
         Ok(())
     }
 
+    pub fn step(&mut self, t: f64, x: &State<D>) -> SolverResult<(f64, State<D>)> {
+        let shape = x.shape_generic();
+        let mut k1 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k2 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k3 = na::OMatrix::zeros_generic(shape.0, shape.1);
+        let mut k4 = na::OMatrix::zeros_generic(shape.0, shape.1);
+
+        self.f.system(t, x, &mut k1);
+        self.f.system(
+            t + self.half_step,
+            &(x + &k1.scale(self.half_step)),
+            &mut k2,
+        );
+        self.f.system(
+            t + self.half_step,
+            &(x + &k2.scale(self.half_step)),
+            &mut k3,
+        );
+        self.f.system(
+            t + self.step_size,
+            &(x + &k3.scale(self.step_size)),
+            &mut k4,
+        );
+
+        let t = t + self.step_size;
+        let x = x + (&k1 + &k2.scale(2.) + &k3.scale(2.) + &k4).scale(self.step_size / 6.);
+        self.results.push(t, x.clone());
+
+        Ok((t, x))
+    }
+
     /// Getter for the independent variable's output.
     pub fn t_out(&self) -> &Vec<f64> {
         self.results.get().0
@@ -242,31 +273,25 @@ where
         Ok(())
     }
 
-    // pub fn step(&mut self) -> SolverResult<()> {
-    //     // TODO modify to handle multiple outputs
-    //     let mut dw = Vec::new();
-    //     self.f.generate_noises(self.step_size, &mut dw);
-    //     let mut dy = self.f.measurement(&self.x0, self.step_size, dw[0]);
-    //
-    //     self.results.push(self.t0, self.x0.clone(), dy);
-    //
-    //     let mut t = self.t0;
-    //     let mut x = self.x0.clone();
-    //     let shape = self.x0.shape_generic();
-    //     let mut dx = na::OMatrix::zeros_generic(shape.0, shape.1);
-    //
-    //     for _ in 0..self.num_steps {
-    //         self.f.system(t, self.step_size, &x, &mut dx, &dw);
-    //         t += self.step_size;
-    //         x += &dx;
-    //         self.f.generate_noises(self.step_size, &mut dw);
-    //         dy = self.f.measurement(&x, self.step_size, dw[0]);
-    //
-    //         self.results.push(t, x.clone(), dy);
-    //     }
-    //
-    //     Ok(())
-    // }
+    pub fn step(&mut self, t: f64, x: &State<D>) -> SolverResult<(f64, State<D>)> {
+        // TODO modify to handle multiple outputs
+        let mut dw = Vec::new();
+        self.f.generate_noises(self.step_size, &mut dw);
+        let mut dy = self.f.measurement(x, self.step_size, dw[0]);
+
+        self.results.push(t, x.clone(), dy);
+
+        let shape = x.shape_generic();
+        let mut dx = na::OMatrix::zeros_generic(shape.0, shape.1);
+
+        self.f.system(t, self.step_size, &x, &mut dx, &dw);
+        let t = t + self.step_size;
+        let x = x + dx;
+        self.f.generate_noises(self.step_size, &mut dw);
+        dy = self.f.measurement(&x, self.step_size, dw[0]);
+
+        Ok((t, x.clone()))
+    }
 
     /// Getter for the independent variable's output.
     pub fn t_out(&self) -> &Vec<f64> {

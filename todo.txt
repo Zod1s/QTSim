@@ -29,3 +29,30 @@ Feedback quantum cooling
 |> Understand what reduced efficiency implies
 
 |> Maybe Kalman filter to estimate Tr[L\rho], since we actually need the expectation of the observable and we measure it with noise, so a Kalman filter could prove useful
+|- cannot be done as it is, maybe try with reduced-dimension system
+
+
+|- https://www.ieee-jas.net/en/article/doi/10.1109/JAS.2023.124071
+
+|> Code improvements
+|- Add stepping function to the solver, to solve the trajectories step by step and allow for the median computation
+|- Decouple simulation and control time, simulating at a higher rate to simulate a discrete-time controller, whereas as of now we are simulating an istantaneous feedback
+|- Understand how to parallelise
+|- Add a function to generate a random density matrix by generating a random X and then computing \rho = X^\dag X / Tr[X^\dag X]
+|- Add efficiency support, test its impact
+
+|> Possible references
+|- https://journals.aps.org/pra/pdf/10.1103/PhysRevA.111.013104 (references to various applications of feedback cooling)
+
+|- https://advanced.onlinelibrary.wiley.com/doi/epdf/10.1002/qute.202100016 https://www.sciencedirect.com/science/article/pii/0370157395000074 (phase-space formulation)
+
+|- https://arxiv.org/pdf/2307.14599 (more or less what I am doing)
+|- https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7508475 (much closer to what I am doing)
+
+|> Using L = I - \rho_d as the measurement operator leads Tr[L\rho] to be V(\rho) = 1 - Tr[\rho\rho_d], the same function as Mirrahimi and Van Handel, so it is clear that, since we are measuring it, we can employ its structure. Clearly we are enforcing the fact that we are in the cooling setting, since \rho_d is the eigenstate of L relative to the eigenvalue \lambda = 0, the minimum eigenvalue of L. Now we have the fact that for any T, the minimum of the expectation of V in [0, T] is strictly smaller than 1 and we need to design F_0 such that H_R does not support any invariant set => we should be able to achieve this by DID.
+
+|> We have a bang-bang control law
+
+|- https://journals.aps.org/prl/pdf/10.1103/g1fd-pfvt (there could be an interesting 3-level system)
+
+|> Maybe plot the fidelity in log scale, highlights better the separation and the rate

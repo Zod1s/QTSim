@@ -22,7 +22,7 @@ pub fn wmfme() -> SolverResult<()> {
 
     for i in 0..10 {
         // let x0 = random_pure_state();
-        let x0 = random_qubit_state();
+        let x0 = random_qubit_state(None);
         // let x0 = na::Matrix2::new(1., 0., 0., 0.).cast();
 
         let mut solver = Rk4::new(system, 0.0, x0, 20.0, 0.001);

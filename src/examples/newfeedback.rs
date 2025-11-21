@@ -36,7 +36,7 @@ pub fn newfeedback() -> SolverResult<()> {
     let f1 = -PAULI_Y.scale(1.0);
 
     // let x0 = na::Matrix2::new(0.5, 0.5, 0.5, 0.5).cast();
-    let x0 = random_qubit_state();
+    let x0 = random_qubit_state(None);
     // let x0 = random_pure_state();
     let x0bloch = to_bloch(&x0)?;
 

@@ -1,6 +1,8 @@
 pub(crate) use nalgebra as na;
 use plotpy::StrError;
 use rand::prelude::*;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use std::io::Error;
 use std::{
     num::ParseIntError,
@@ -119,26 +121,31 @@ pub fn to_bloch_unchecked(rho: &QubitState) -> BlochVector {
     bloch
 }
 
-pub fn random_complex_vector<D>() -> na::OVector<na::Complex<f64>, D>
+pub fn random_complex_vector<D>(seed: Option<u64>) -> na::OVector<na::Complex<f64>, D>
 where
     D: na::Dim + na::DimName,
     na::DefaultAllocator: na::allocator::Allocator<D>,
 {
-    let mut rng = rand::rng();
+    let mut rng = if let Some(seed) = seed {
+        StdRng::seed_from_u64(seed)
+    } else {
+        StdRng::from_rng(&mut rand::rng())
+    };
+
     na::OVector::from_fn(|_, _| {
         na::Complex::new(rng.random_range(-1.0..1.0), rng.random_range(-1.0..1.0))
     })
 }
 
-pub fn random_unit_complex_vector<D>() -> na::OVector<na::Complex<f64>, D>
+pub fn random_unit_complex_vector<D>(seed: Option<u64>) -> na::OVector<na::Complex<f64>, D>
 where
     D: na::Dim + na::DimName,
     na::DefaultAllocator: na::allocator::Allocator<D>,
 {
-    random_complex_vector::<D>().normalize()
+    random_complex_vector::<D>(seed).normalize()
 }
 
-pub fn random_pure_state<D>() -> State<D>
+pub fn random_pure_state<D>(seed: Option<u64>) -> State<D>
 where
     D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
@@ -146,7 +153,7 @@ where
     na::DefaultAllocator: na::allocator::Allocator<na::Const<1>, D>,
     na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
 {
-    let x = random_unit_complex_vector::<D>();
+    let x = random_unit_complex_vector::<D>(seed);
     let x = &x * x.adjoint();
 
     let mut decomp = x.symmetric_eigen();
@@ -158,8 +165,12 @@ where
     x.scale(1. / x.trace().re)
 }
 
-pub fn random_vector_3() -> na::SVector<f64, 3> {
-    let mut rng = rand::rng();
+pub fn random_vector_3(seed: Option<u64>) -> na::SVector<f64, 3> {
+    let mut rng = if let Some(seed) = seed {
+        StdRng::seed_from_u64(seed)
+    } else {
+        StdRng::from_rng(&mut rand::rng())
+    };
     na::Vector3::new(
         rng.random_range(-1.0..1.0),
         rng.random_range(-1.0..1.0),
@@ -167,22 +178,22 @@ pub fn random_vector_3() -> na::SVector<f64, 3> {
     )
 }
 
-pub fn random_blochvector() -> BlochVector {
+pub fn random_blochvector(seed: Option<u64>) -> BlochVector {
     loop {
-        let vec = random_vector_3();
+        let vec = random_vector_3(seed);
         if vec.norm() <= 1. {
             return vec;
         }
     }
 }
 
-pub fn random_pure_blochvector() -> BlochVector {
-    let vec = random_vector_3();
+pub fn random_pure_blochvector(seed: Option<u64>) -> BlochVector {
+    let vec = random_vector_3(seed);
     vec.normalize()
 }
 
-pub fn random_pure_qubitstate() -> QubitState {
-    from_bloch(&random_pure_blochvector()).expect("It should already have norm 1")
+pub fn random_pure_qubitstate(seed: Option<u64>) -> QubitState {
+    from_bloch(&random_pure_blochvector(seed)).expect("It should already have norm 1")
 }
 
 pub fn from_bloch(bloch: &BlochVector) -> SolverResult<QubitState> {
@@ -205,8 +216,8 @@ pub fn from_bloch_unchecked(bloch: &BlochVector) -> QubitState {
     .scale(0.5)
 }
 
-pub fn random_qubit_state() -> QubitState {
-    from_bloch(&random_blochvector())
+pub fn random_qubit_state(seed: Option<u64>) -> QubitState {
+    from_bloch(&random_blochvector(seed))
         .expect("Cannot have norm larger than 1 by construction, this should never fail")
 }
 
@@ -455,5 +466,16 @@ pub fn lapackerror(info: i32) -> SolverResult<()> {
         Ok(())
     } else {
         Err(SolverError::LapackError(info))
+    }
+}
+
+pub fn median(v: &mut [f64]) -> f64 {
+    v.sort_by(f64::total_cmp);
+
+    let mid = v.len() / 2;
+    if v.len() % 2 == 0 {
+        (v[mid - 1] + v[mid]) / 2.
+    } else {
+        v[mid]
     }
 }
