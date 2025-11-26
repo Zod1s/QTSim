@@ -49,7 +49,9 @@ Feedback quantum cooling
 |- https://arxiv.org/pdf/2307.14599 (more or less what I am doing)
 |- https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7508475 (much closer to what I am doing)
 
-|> Using L = I - \rho_d as the measurement operator leads Tr[L\rho] to be V(\rho) = 1 - Tr[\rho\rho_d], the same function as Mirrahimi and Van Handel, so it is clear that, since we are measuring it, we can employ its structure. Clearly we are enforcing the fact that we are in the cooling setting, since \rho_d is the eigenstate of L relative to the eigenvalue \lambda = 0, the minimum eigenvalue of L. Now we have the fact that for any T, the minimum of the expectation of V in [0, T] is strictly smaller than 1 and we need to design F_0 such that H_R does not support any invariant set => we should be able to achieve this by DID.
+|> Using L = I - \rho_d as the measurement operator leads Tr[L\rho] to be V(\rho) = 1 - Tr[\rho\rho_d], the same function as Mirrahimi and Van Handel, so it is clear that, since we are measuring it, we can employ its structure. Clearly we are enforcing the fact that we are in the cooling setting, since \rho_d is the eigenstate of L relative to the eigenvalue \lambda = 0, the minimum eigenvalue of L. Now we have the fact that for any T, the minimum of the expectation of V in [0, T] is strictly smaller than 1 and we need to design F_0 such that H_R does not support any invariant set => we should be able to achieve this by DID. !Set as remark
+
+|> Comment on derivative feedback
 
 |> We have a bang-bang control law
 
