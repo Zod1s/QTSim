@@ -9,7 +9,7 @@ use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
 use std::sync::{Arc, Mutex};
 
-const NUMTHREADS: usize = 24;
+const NUMTHREADS: usize = 30;
 
 pub fn parallel() -> SolverResult<()> {
     rayon::ThreadPoolBuilder::new()
@@ -26,9 +26,9 @@ pub fn parallel() -> SolverResult<()> {
 
     let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
 
-    let num_tries = 250;
+    let num_tries = 500;
     let num_inner_tries = 10;
-    let final_time: f64 = 10.0;
+    let final_time: f64 = 15.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -36,6 +36,7 @@ pub fn parallel() -> SolverResult<()> {
     let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
     let mut avg_time_fidelity = vec![0.; num_steps + 1];
     let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
+    let mut avg_time_fidelity3 = vec![0.; num_steps + 1];
     let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
 
     let delta = 3.;
@@ -45,13 +46,14 @@ pub fn parallel() -> SolverResult<()> {
     let beta = 0.6;
     let k = 5000;
     let k2 = 10000;
+    let k3 = 20000;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
         "#ff0037", "#e1ff00",
     ];
 
-    let bar = ProgressBar::new(5 * num_tries).with_style(
+    let bar = ProgressBar::new(6 * num_tries).with_style(
         ProgressStyle::default_bar()
             .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
             .unwrap(),
@@ -62,6 +64,7 @@ pub fn parallel() -> SolverResult<()> {
     let mut err3 = Ok(());
     let mut err4 = Ok(());
     let mut err5 = Ok(());
+    let mut err6 = Ok(());
 
     plot.set_log_y(true);
 
@@ -246,6 +249,40 @@ pub fn parallel() -> SolverResult<()> {
 
             bar.finish();
         });
+        s.spawn(|s| {
+            for i in 0..num_tries {
+                bar.inc(1);
+                let x0 = random_pure_state::<na::U3>(Some(i));
+
+                for j in 0..num_inner_tries {
+                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+                        h, l, hc, f0, f1, y1, k3, delta, gamma, beta, epsilon, &mut rng,
+                    );
+
+                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+                    match solver.integrate() {
+                        Ok(_) => {
+                            let (t_out, rho_out, dy_out) = solver.results().get();
+
+                            let obsv = rho_out
+                                .iter()
+                                .map(|rho| fidelity(rho, &rhod))
+                                .collect::<Vec<f64>>();
+
+                            avg_time_fidelity3 = avg_time_fidelity3
+                                .iter()
+                                .zip(&obsv)
+                                .map(|(x, y)| x + y)
+                                .collect::<Vec<f64>>();
+                        }
+                        Err(e) => err6 = Err(e),
+                    }
+                }
+            }
+
+            bar.finish();
+        });
     });
 
     err1?;
@@ -253,6 +290,7 @@ pub fn parallel() -> SolverResult<()> {
     err3?;
     err4?;
     err5?;
+    err6?;
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
@@ -282,6 +320,11 @@ pub fn parallel() -> SolverResult<()> {
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
+    let avg_time_fidelity3 = avg_time_fidelity3
+        .iter()
+        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
+        .collect::<Vec<f64>>();
+
     let mut free_curve = plotpy::Curve::new();
     free_curve
         .set_label("Free evolution")
@@ -307,11 +350,17 @@ pub fn parallel() -> SolverResult<()> {
         .set_label(&format!("Windowed evolution, k = {}", k2))
         .draw(&t_out, &avg_time_fidelity2);
 
+    let mut time_curve3 = plotpy::Curve::new();
+    time_curve3
+        .set_label(&format!("Windowed evolution, k = {}", k2))
+        .draw(&t_out, &avg_time_fidelity3);
+
     plot.add(&free_curve)
         .add(&ctrl_curve)
         .add(&time_curve)
         .add(&ideal_curve)
         .add(&time_curve2)
+        .add(&time_curve3)
         .legend();
 
     constrainedlayout("Images/parallel", &mut plot, true)
