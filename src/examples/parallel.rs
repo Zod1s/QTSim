@@ -66,8 +66,6 @@ pub fn parallel() -> SolverResult<()> {
     let mut err5 = Ok(());
     let mut err6 = Ok(());
 
-    plot.set_log_y(true);
-
     rayon::scope(|s| {
         s.spawn(|s| {
             for i in 0..num_tries {
