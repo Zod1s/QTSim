@@ -26,17 +26,18 @@ pub fn parallel() -> SolverResult<()> {
 
     let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
 
-    let num_tries = 500;
-    let num_inner_tries = 10;
+    let num_tries = 1000;
+    let num_inner_tries = 20;
     let final_time: f64 = 15.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
     let mut avg_free_fidelity = vec![0.; num_steps + 1];
     let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity = vec![0.; num_steps + 1];
+    let mut avg_time_fidelity1 = vec![0.; num_steps + 1];
     let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
     let mut avg_time_fidelity3 = vec![0.; num_steps + 1];
+    let mut avg_time_fidelity4 = vec![0.; num_steps + 1];
     let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
 
     let delta = 3.;
@@ -44,9 +45,10 @@ pub fn parallel() -> SolverResult<()> {
     let y1 = -2.;
     let epsilon = delta * 1.;
     let beta = 0.6;
-    let k = 5000;
-    let k2 = 10000;
-    let k3 = 20000;
+    let k1 = 5000;
+    let k2 = 20000;
+    let k3 = 50000;
+    let k4 = 100000;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -65,6 +67,7 @@ pub fn parallel() -> SolverResult<()> {
     let mut err4 = Ok(());
     let mut err5 = Ok(());
     let mut err6 = Ok(());
+    let mut err7 = Ok(());
 
     rayon::scope(|s| {
         s.spawn(|s| {
@@ -153,7 +156,7 @@ pub fn parallel() -> SolverResult<()> {
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
                     let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng,
+                        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon, &mut rng,
                     );
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
@@ -166,7 +169,7 @@ pub fn parallel() -> SolverResult<()> {
                                 .map(|rho| fidelity(rho, &rhod))
                                 .collect::<Vec<f64>>();
 
-                            avg_time_fidelity = avg_time_fidelity
+                            avg_time_fidelity1 = avg_time_fidelity1
                                 .iter()
                                 .zip(&obsv)
                                 .map(|(x, y)| x + y)
@@ -281,6 +284,40 @@ pub fn parallel() -> SolverResult<()> {
 
             bar.finish();
         });
+        s.spawn(|s| {
+            for i in 0..num_tries {
+                bar.inc(1);
+                let x0 = random_pure_state::<na::U3>(Some(i));
+
+                for j in 0..num_inner_tries {
+                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+                        h, l, hc, f0, f1, y1, k4, delta, gamma, beta, epsilon, &mut rng,
+                    );
+
+                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+                    match solver.integrate() {
+                        Ok(_) => {
+                            let (t_out, rho_out, dy_out) = solver.results().get();
+
+                            let obsv = rho_out
+                                .iter()
+                                .map(|rho| fidelity(rho, &rhod))
+                                .collect::<Vec<f64>>();
+
+                            avg_time_fidelity4 = avg_time_fidelity4
+                                .iter()
+                                .zip(&obsv)
+                                .map(|(x, y)| x + y)
+                                .collect::<Vec<f64>>();
+                        }
+                        Err(e) => err7 = Err(e),
+                    }
+                }
+            }
+
+            bar.finish();
+        });
     });
 
     err1?;
@@ -289,6 +326,7 @@ pub fn parallel() -> SolverResult<()> {
     err4?;
     err5?;
     err6?;
+    err7?;
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
@@ -303,7 +341,7 @@ pub fn parallel() -> SolverResult<()> {
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
-    let avg_time_fidelity = avg_time_fidelity
+    let avg_time_fidelity1 = avg_time_fidelity1
         .iter()
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
@@ -323,6 +361,11 @@ pub fn parallel() -> SolverResult<()> {
         .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
         .collect::<Vec<f64>>();
 
+    let avg_time_fidelity4 = avg_time_fidelity4
+        .iter()
+        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
+        .collect::<Vec<f64>>();
+
     let mut free_curve = plotpy::Curve::new();
     free_curve
         .set_label("Free evolution")
@@ -333,10 +376,10 @@ pub fn parallel() -> SolverResult<()> {
         .set_label("Controlled evolution")
         .draw(&t_out, &avg_ctrl_fidelity);
 
-    let mut time_curve = plotpy::Curve::new();
-    time_curve
-        .set_label(&format!("Windowed evolution, k = {}", k))
-        .draw(&t_out, &avg_time_fidelity);
+    let mut time_curve1 = plotpy::Curve::new();
+    time_curve1
+        .set_label(&format!("Windowed evolution, k = {}", k1))
+        .draw(&t_out, &avg_time_fidelity1);
 
     let mut ideal_curve = plotpy::Curve::new();
     ideal_curve
@@ -350,15 +393,21 @@ pub fn parallel() -> SolverResult<()> {
 
     let mut time_curve3 = plotpy::Curve::new();
     time_curve3
-        .set_label(&format!("Windowed evolution, k = {}", k2))
+        .set_label(&format!("Windowed evolution, k = {}", k3))
         .draw(&t_out, &avg_time_fidelity3);
+
+    let mut time_curve4 = plotpy::Curve::new();
+    time_curve4
+        .set_label(&format!("Windowed evolution, k = {}", k4))
+        .draw(&t_out, &avg_time_fidelity4);
 
     plot.add(&free_curve)
         .add(&ctrl_curve)
-        .add(&time_curve)
+        .add(&time_curve1)
         .add(&ideal_curve)
         .add(&time_curve2)
         .add(&time_curve3)
+        .add(&time_curve4)
         .legend();
 
     constrainedlayout("Images/parallel", &mut plot, true)
