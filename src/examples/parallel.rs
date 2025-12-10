@@ -28,7 +28,7 @@ pub fn parallel() -> SolverResult<()> {
 
     let num_tries = 1000;
     let num_inner_tries = 20;
-    let final_time: f64 = 15.0;
+    let final_time: f64 = 30.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -410,5 +410,5 @@ pub fn parallel() -> SolverResult<()> {
         .add(&time_curve4)
         .legend();
 
-    constrainedlayout("Images/parallel", &mut plot, true)
+    constrainedlayout("Images/parallel2", &mut plot, true)
 }
