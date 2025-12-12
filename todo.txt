@@ -40,6 +40,7 @@ Feedback quantum cooling
 |- Understand how to parallelise
 |- Add a function to generate a random density matrix by generating a random X and then computing \rho = X^\dag X / Tr[X^\dag X]
 |- Add efficiency support, test its impact
+|- Add a function to set the rng of each system, so that I can create an array of references of systems, to write more compactly multiple tests with spawned threads
 
 |> Possible references
 |- https://journals.aps.org/pra/pdf/10.1103/PhysRevA.111.013104 (references to various applications of feedback cooling)
@@ -57,4 +58,32 @@ Feedback quantum cooling
 
 |- https://journals.aps.org/prl/pdf/10.1103/g1fd-pfvt (there could be an interesting 3-level system)
 
-|> Maybe plot the fidelity in log scale, highlights better the separation and the rate
+x dire esplicitamente che i conti per \hat y sono fatti senza controllo
+x rinominare U_t
+x aggiungere cappello introduttivo alla sezione practical implementations
+x connettere i primi due paragrafi dicendo che ci restringiamo a un caso particolare per sviluppare l'intuizione
+x dire che \hat y converge a \bar y
+x siccome sappiamo che converge a uno degli equilibri, dopo un transiente senza controllo questo deve succedere
+- media su tutti i tempi non è ideale per gestire transienti veloci
+- consideriamo una versione finestrata
+- come progettare \Delta per la versione finestrata
+- questo segnale ci permette di capire se stiamo convergendo verso lo stato corretto
+- mettere \hat y e y^\Delta_t come equation
+- evidenziare il tradeoff di \Delta
+
+- Ricordarsi che ho già supposto che Tr[L] < N\lambda_2, quindi devo esplicitare il fatto che \bar \rho nella dimostrazione è sempre almeno \rho_{mix}, e devo assicurarmi che sia l'unico, ma se lo è, allora l'ipotesi sulla traccia di L mi garantisce la veridicità dell'ipotesi
+
+- Vedere se si riesce a riscrivere con ground state degenere -> Unico problema potrebbe essere la definizione di V(\rho), perché per ora è basata sullo stato, ma forse basta riscriverla come V(\rho) = Tr[L\rho] - \lambda_1, in questo modo stiamo effettivamente calcolando la "distanza" dagli stati con supporto esclusivamente sull'autospazio a energia minima -> Per il resto, non dovrebbero esserci problemi (?)
+
+- Equazione (23) non ha senso il fatto di chiamarle entrambe V', sono funzioni diverse, va trovato un altro nome
+
+- Capire la dinamica degli stati che sono "autostati" di L ma non di H_0 -> nel senso, avrei d\rho_t = -i[H_0, \rho_t]dt, deterministica e unitaria, quindi può uscire dall'autospazio? Perché allora asintoticamente c'è un problema, perché la varianza di L deve andare a zero, ma se \rho_t va a uno di questi stati, non può andare a 0, visto che potrebbe uscire dall'insieme (circa?)
+
+- Trovare un altro nome per \bar y e \hat y, perché non c'entrano particolarmente con il valore di y, nel senso che non sono una stima né una media né altro di simile, quindi serve un'altra notazione
+
+- Sistemare la dimostrazione del Lemma 1, perché non mi piace come è scritta, non è scorrevole
+
+Antiferromagnetic Heisenberg triangle
+H = J(S_1 * S_2 + S_2 * S_3 + S_3 * S_1)
+dove S_i = (S_i^x, S_i^y, S_i^z) e S_1^x = \sigma_x \otimes I \otimes I
+

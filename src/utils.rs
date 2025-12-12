@@ -33,9 +33,7 @@ const MISQRT2: na::Complex<f64> = na::Complex::new(0., -1. / std::f64::consts::S
 const FRAC_1_SQRT_3: f64 = 0.577350269189625764509148780501957456_f64;
 
 pub const PAULI_X: QubitOperator = na::Matrix2::new(ZERO, ONE, ONE, ZERO);
-
 pub const PAULI_Y: QubitOperator = na::Matrix2::new(ZERO, MI, I, ZERO);
-
 pub const PAULI_Z: QubitOperator = na::Matrix2::new(ONE, ZERO, ZERO, MONE);
 
 pub const GELLMANN1: Operator<na::Const<3>> =
@@ -63,6 +61,8 @@ pub const GELLMANN8: Operator<na::Const<3>> = na::Matrix3::new(
     ZERO,
     na::Complex::new(-FRAC_1_SQRT_3 * std::f64::consts::SQRT_2, 0.),
 );
+
+pub const PAULIS: [QubitOperator; 3] = [PAULI_X, PAULI_Y, PAULI_Z];
 
 pub const GELLMANNMATRICES: [Operator<na::Const<3>>; 8] = [
     GELLMANN1, GELLMANN2, GELLMANN3, GELLMANN4, GELLMANN5, GELLMANN6, GELLMANN7, GELLMANN8,
