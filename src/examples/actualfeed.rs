@@ -153,28 +153,28 @@ pub fn actualfeed() -> SolverResult<()> {
             .set_line_color(colors[i as usize])
             .draw(&t_out_dec, &obsv_dec);
 
-        plot.set_subplot(4, 1, 1).add(&zaxis);
+        plot.set_subplot(2, 2, 1).add(&zaxis);
 
         let mut maxis = plotpy::Curve::new();
         maxis
             .set_line_color(colors[i as usize])
             .draw(&t_out_dec, &meas_dec);
 
-        plot.set_subplot(4, 1, 2).add(&maxis);
+        plot.set_subplot(2, 2, 2).add(&maxis);
 
         let mut szaxis = plotpy::Curve::new();
         szaxis
             .set_line_color(colors[i as usize])
             .draw(&st_out_dec, &sobsv_dec);
 
-        plot.set_subplot(4, 2, 1).add(&szaxis);
+        plot.set_subplot(2, 2, 3).add(&szaxis);
 
         let mut smaxis = plotpy::Curve::new();
         smaxis
             .set_line_color(colors[i as usize])
             .draw(&st_out_dec, &smeas_dec);
 
-        plot.set_subplot(4, 2, 2).add(&smaxis);
+        plot.set_subplot(2, 2, 4).add(&smaxis);
     }
     bar.finish();
 
