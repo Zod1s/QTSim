@@ -2,32 +2,39 @@ use crate::plots::constrainedlayout;
 use crate::solver::{Rk4, StochasticSolver};
 use crate::systems;
 use crate::utils::*;
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
+use rayon::prelude::*;
+use std::sync::{Arc, Mutex};
 
 /// \[rho_d, L + L^dag\] = 0 case
 pub fn actualfeed() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
-    let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    let hc = na::Matrix3::zeros();
-    let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
-    let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    let f1 = na::Matrix3::zeros();
+    // let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    // let hc = na::Matrix3::zeros();
+    // let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
+    // let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    // let f1 = na::Matrix3::zeros();
+    //
+    // let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
 
-    let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
+    let h = ferromagnetictriangle(&vec![1., 1., 5.]);
+    let l = h.clone();
+    let hc = na::SMatrix::<na::Complex<f64>, 8, 8>::zeros();
+    let f1 = hc.clone();
+    let f0 = hc.clone();
 
     // let x0 = na::Vector3::new(1., 1., 1.).cast();
     // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
 
-    let num_tries = 500;
-    let num_inner_tries = 1;
+    let num_tries = 10;
     let final_time: f64 = 10.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
-    // let decimation = 60;
+    let decimation = 1;
 
     let mut avg_free_fidelity = vec![0.; num_steps + 1];
     let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
@@ -56,216 +63,157 @@ pub fn actualfeed() -> SolverResult<()> {
 
     for i in 0..num_tries {
         bar.inc(1);
-        let x0 = random_pure_state::<na::U3>(Some(i));
+        let x0 = random_pure_state::<na::U8>(Some(10 * (i + 1)));
 
-        for j in 0..num_inner_tries {
-            let mut rng1 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng2 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng3 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng4 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut rng5 = StdRng::seed_from_u64(num_inner_tries * i + j);
-            let mut system = systems::multilevelcompletefeedback::Feedback::new(
-                h,
-                l,
-                hc,
-                na::Matrix3::zeros(),
-                f1,
-                y1,
-                delta,
-                gamma,
-                beta,
-                epsilon,
-                &mut rng1,
-            );
+        let mut rng1 = StdRng::seed_from_u64(i);
+        let mut rng2 = StdRng::seed_from_u64(i);
+        let mut system = systems::multilevelcompletefeedback::Feedback::new(
+            h,
+            l,
+            hc,
+            hc.clone(),
+            f1,
+            y1,
+            delta,
+            gamma,
+            beta,
+            epsilon,
+            &mut rng1,
+        );
 
-            let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-            solver.integrate()?;
+        let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        solver.integrate()?;
 
-            let (t_out, rho_out, dy_out) = solver.results().get();
+        let (t_out, rho_out, dy_out) = solver.results().get();
 
-            let obsv = rho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+        let obsv = rho_out
+            .iter()
+            // .map(|rho| fidelity(rho, &rhod))
+            .map(|rho| {
+                (rho * (na::SMatrix::from_diagonal(
+                    &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
+                )))
+                .trace()
+                .re
+            })
+            .collect::<Vec<f64>>();
 
-            avg_free_fidelity = avg_free_fidelity
-                .iter()
-                .zip(&obsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+        let meas = rho_out
+            .iter()
+            .map(|rho| (rho * l).trace().re)
+            .collect::<Vec<f64>>();
 
-            let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
-                h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
-            );
-            let mut controlledsolver =
-                StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-            controlledsolver.integrate()?;
+        let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
+            h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
+        );
+        let mut controlledsolver =
+            StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
+        controlledsolver.integrate()?;
 
-            let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
+        let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
 
-            let sobsv = srho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+        let sobsv = srho_out
+            .iter()
+            // .map(|rho| fidelity(rho, &rhod))
+            .map(|rho| {
+                (rho * (na::SMatrix::from_diagonal(
+                    &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
+                )))
+                .trace()
+                .re
+            })
+            .collect::<Vec<f64>>();
+        let smeas = srho_out
+            .iter()
+            .map(|rho| (rho * l).trace().re)
+            .collect::<Vec<f64>>();
 
-            avg_ctrl_fidelity = avg_ctrl_fidelity
-                .iter()
-                .zip(&sobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+        let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
+            .map(|i| t_out[i * decimation])
+            .collect();
+        let st_out_dec: Vec<f64> = (0..st_out.len() / decimation)
+            .map(|i| st_out[i * decimation])
+            .collect();
 
-            let mut timecontrolledsystem = systems::multilevelcompletefeedback::Feedback2::new(
-                h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng3,
-            );
-            let mut timecontrolledsolver =
-                StochasticSolver::new(&mut timecontrolledsystem, 0.0, x0, final_time, dt);
-            timecontrolledsolver.integrate()?;
+        let obsv_dec = (0..obsv.len() / decimation)
+            .map(|i| obsv[i * decimation])
+            .collect();
+        let meas_dec = (0..meas.len() / decimation)
+            .map(|i| meas[i * decimation])
+            .collect();
+        let sobsv_dec = (0..sobsv.len() / decimation)
+            .map(|i| sobsv[i * decimation])
+            .collect();
+        let smeas_dec = (0..meas.len() / decimation)
+            .map(|i| meas[i * decimation])
+            .collect();
 
-            let (tt_out, trho_out, tdy_out) = timecontrolledsolver.results().get();
+        let mut zaxis = plotpy::Curve::new();
+        zaxis
+            .set_line_color(colors[i as usize])
+            .draw(&t_out_dec, &obsv_dec);
 
-            let tobsv = trho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+        plot.set_subplot(4, 1, 1).add(&zaxis);
 
-            avg_time_fidelity = avg_time_fidelity
-                .iter()
-                .zip(&tobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
+        let mut maxis = plotpy::Curve::new();
+        maxis
+            .set_line_color(colors[i as usize])
+            .draw(&t_out_dec, &meas_dec);
 
-            let mut idealcontrolledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
-                h, l, hc, f0, f1, y1, delta, gamma, &mut rng4,
-            );
+        plot.set_subplot(4, 1, 2).add(&maxis);
 
-            let mut idealcontrolledsolver =
-                StochasticSolver::new(&mut idealcontrolledsystem, 0.0, x0, final_time, dt);
-            idealcontrolledsolver.integrate()?;
+        let mut szaxis = plotpy::Curve::new();
+        szaxis
+            .set_line_color(colors[i as usize])
+            .draw(&st_out_dec, &sobsv_dec);
 
-            let (it_out, irho_out, idy_out) = idealcontrolledsolver.results().get();
+        plot.set_subplot(4, 2, 1).add(&szaxis);
 
-            let iobsv = irho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+        let mut smaxis = plotpy::Curve::new();
+        smaxis
+            .set_line_color(colors[i as usize])
+            .draw(&st_out_dec, &smeas_dec);
 
-            avg_ideal_fidelity = avg_ideal_fidelity
-                .iter()
-                .zip(&iobsv)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
-
-            let mut timecontrolledsystem2 = systems::multilevelcompletefeedback::Feedback2::new(
-                h, l, hc, f0, f1, y1, k2, delta, gamma, beta, epsilon, &mut rng3,
-            );
-            let mut timecontrolledsolver2 =
-                StochasticSolver::new(&mut timecontrolledsystem2, 0.0, x0, final_time, dt);
-            timecontrolledsolver2.integrate()?;
-
-            let (tt_out2, trho_out2, tdy_out2) = timecontrolledsolver2.results().get();
-
-            let tobsv2 = trho_out2
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
-
-            avg_time_fidelity2 = avg_time_fidelity2
-                .iter()
-                .zip(&tobsv2)
-                .map(|(x, y)| x + y)
-                .collect::<Vec<f64>>();
-        }
-
-        // let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
-        //     .map(|i| t_out[i * decimation])
-        //     .collect();
-        // let st_out_dec: Vec<f64> = (0..st_out.len() / decimation)
-        //     .map(|i| st_out[i * decimation])
-        //     .collect();
-        //
-        // let obsv_dec = (0..obsv.len() / decimation)
-        //     .map(|i| obsv[i * decimation])
-        //     .collect();
-        // let sobsv_dec = (0..sobsv.len() / decimation)
-        //     .map(|i| sobsv[i * decimation])
-        //     .collect();
-        //
-        // let mut zaxis = plotpy::Curve::new();
-        // zaxis
-        //     .set_line_color(colors[i as usize])
-        //     .draw(&t_out_dec, &obsv_dec);
-        //
-        // plot.set_subplot(2, 1, 1).add(&zaxis);
-        //
-        // let mut szaxis = plotpy::Curve::new();
-        // szaxis
-        //     .set_line_color(colors[i as usize])
-        //     .draw(&st_out_dec, &sobsv_dec);
-        //
-        // plot.set_subplot(2, 1, 2).add(&szaxis);
+        plot.set_subplot(4, 2, 2).add(&smaxis);
     }
     bar.finish();
 
-    let t_out = (0..=num_steps)
-        .map(|n| (n as f64) * dt)
-        .collect::<Vec<f64>>();
-
-    avg_free_fidelity = avg_free_fidelity
-        .iter()
-        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-        .collect::<Vec<f64>>();
-
-    avg_ctrl_fidelity = avg_ctrl_fidelity
-        .iter()
-        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-        .collect::<Vec<f64>>();
-
-    avg_time_fidelity = avg_time_fidelity
-        .iter()
-        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-        .collect::<Vec<f64>>();
-
-    avg_ideal_fidelity = avg_ideal_fidelity
-        .iter()
-        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-        .collect::<Vec<f64>>();
-
-    avg_time_fidelity2 = avg_time_fidelity2
-        .iter()
-        .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-        .collect::<Vec<f64>>();
-
-    let mut free_curve = plotpy::Curve::new();
-    free_curve
-        .set_label("Free evolution")
-        .draw(&t_out, &avg_free_fidelity);
-
-    let mut ctrl_curve = plotpy::Curve::new();
-    ctrl_curve
-        .set_label("Controlled evolution")
-        .draw(&t_out, &avg_ctrl_fidelity);
-
-    let mut time_curve = plotpy::Curve::new();
-    time_curve
-        .set_label(&format!("Windowed evolution, k = {}", k))
-        .draw(&t_out, &avg_time_fidelity);
-
-    let mut ideal_curve = plotpy::Curve::new();
-    ideal_curve
-        .set_label("Ideal evolution")
-        .draw(&t_out, &avg_ideal_fidelity);
-
-    let mut time_curve2 = plotpy::Curve::new();
-    time_curve2
-        .set_label(&format!("Windowed evolution, k = {}", k2))
-        .draw(&t_out, &avg_time_fidelity2);
-
-    plot.add(&free_curve)
-        .add(&ctrl_curve)
-        .add(&time_curve)
-        .add(&ideal_curve)
-        .add(&time_curve2)
-        .legend();
-
     constrainedlayout("Images/multilevelwmreal1", &mut plot, true)
+}
+
+fn ferromagnetictriangle(weights: &[f64]) -> Operator<na::U8> {
+    let id = na::Matrix2::<na::Complex<f64>>::identity();
+    let s1 = PAULIS
+        .iter()
+        .map(|pauli| pauli.kronecker(&id).kronecker(&id))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let s2 = PAULIS
+        .iter()
+        .map(|pauli| id.kronecker(&pauli).kronecker(&id))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let s3 = PAULIS
+        .iter()
+        .map(|pauli| id.kronecker(&id).kronecker(&pauli))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let h = -s1
+        .iter()
+        .zip(s2.iter())
+        .zip(weights.iter())
+        .map(|((p1, p2), w)| p1 * p2.scale(*w))
+        .sum::<Operator<na::U8>>()
+        - s2.iter()
+            .zip(s3.iter())
+            .zip(weights.iter())
+            .map(|((p1, p2), w)| p1 * p2.scale(*w))
+            .sum::<Operator<na::U8>>()
+        - s3.iter()
+            .zip(s1.iter())
+            .zip(weights.iter())
+            .map(|((p1, p2), w)| p1 * p2.scale(*w))
+            .sum::<Operator<na::U8>>();
+
+    h
 }
