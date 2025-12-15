@@ -13,14 +13,6 @@ use std::sync::{Arc, Mutex};
 pub fn actualfeed() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
-    // let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let hc = na::Matrix3::zeros();
-    // let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
-    // let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let f1 = na::Matrix3::zeros();
-    //
-    // let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
-
     let h = ferromagnetictriangle(&vec![1., 1., 5.]);
     let l = h.clone();
     let hc = Operator::<na::U8>::zeros();
@@ -33,19 +25,12 @@ pub fn actualfeed() -> SolverResult<()> {
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
     let decimation = 1;
 
-    let mut avg_free_fidelity = vec![0.; num_steps + 1];
-    let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
-    let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
-
-    let delta = 3.;
-    let gamma = 0.2 * delta;
-    let y1 = -2.;
+    let delta = 16.;
+    let gamma = 0.5 * delta;
+    let y1 = -15.;
     let epsilon = delta * 1.;
     let beta = 0.6;
     let k = 5000;
-    let k2 = 10000;
 
     let colors = [
         "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
@@ -85,7 +70,6 @@ pub fn actualfeed() -> SolverResult<()> {
 
         let obsv = rho_out
             .iter()
-            // .map(|rho| fidelity(rho, &rhod))
             .map(|rho| {
                 (rho * (Operator::from_diagonal(
                     &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
@@ -100,8 +84,11 @@ pub fn actualfeed() -> SolverResult<()> {
             .map(|rho| (rho * l).trace().re)
             .collect::<Vec<f64>>();
 
-        let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
-            h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
+        // let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
+        //     h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
+        // );
+        let mut controlledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
+            h, l, hc, f0, f1, y1, delta, gamma, &mut rng2,
         );
         let mut controlledsolver =
             StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
@@ -111,7 +98,6 @@ pub fn actualfeed() -> SolverResult<()> {
 
         let sobsv = srho_out
             .iter()
-            // .map(|rho| fidelity(rho, &rhod))
             .map(|rho| {
                 (rho * (Operator::from_diagonal(
                     &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
@@ -138,10 +124,11 @@ pub fn actualfeed() -> SolverResult<()> {
         let meas_dec = (0..meas.len() / decimation)
             .map(|i| meas[i * decimation])
             .collect();
+
         let sobsv_dec = (0..sobsv.len() / decimation)
             .map(|i| sobsv[i * decimation])
             .collect();
-        let smeas_dec = (0..meas.len() / decimation)
+        let smeas_dec = (0..smeas.len() / decimation)
             .map(|i| meas[i * decimation])
             .collect();
 
@@ -157,14 +144,14 @@ pub fn actualfeed() -> SolverResult<()> {
             .set_line_color(colors[i as usize])
             .draw(&t_out_dec, &meas_dec);
 
-        plot.set_subplot(2, 2, 2).add(&maxis);
+        plot.set_subplot(2, 2, 3).add(&maxis);
 
         let mut szaxis = plotpy::Curve::new();
         szaxis
             .set_line_color(colors[i as usize])
             .draw(&st_out_dec, &sobsv_dec);
 
-        plot.set_subplot(2, 2, 3).add(&szaxis);
+        plot.set_subplot(2, 2, 2).add(&szaxis);
 
         let mut smaxis = plotpy::Curve::new();
         smaxis
