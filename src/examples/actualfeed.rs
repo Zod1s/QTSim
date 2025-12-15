@@ -23,12 +23,9 @@ pub fn actualfeed() -> SolverResult<()> {
 
     let h = ferromagnetictriangle(&vec![1., 1., 5.]);
     let l = h.clone();
-    let hc = na::SMatrix::<na::Complex<f64>, 8, 8>::zeros();
+    let hc = Operator::<na::U8>::zeros();
     let f1 = hc.clone();
-    let f0 = hc.clone();
-
-    // let x0 = na::Vector3::new(1., 1., 1.).cast();
-    // let x0 = x0 * x0.conjugate().transpose().scale(1. / 3.);
+    let f0 = Operator::<na::U8>::from_element(na::Complex::ONE) - Operator::<na::U8>::identity();
 
     let num_tries = 10;
     let final_time: f64 = 10.0;
@@ -90,7 +87,7 @@ pub fn actualfeed() -> SolverResult<()> {
             .iter()
             // .map(|rho| fidelity(rho, &rhod))
             .map(|rho| {
-                (rho * (na::SMatrix::from_diagonal(
+                (rho * (Operator::from_diagonal(
                     &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
                 )))
                 .trace()
@@ -116,7 +113,7 @@ pub fn actualfeed() -> SolverResult<()> {
             .iter()
             // .map(|rho| fidelity(rho, &rhod))
             .map(|rho| {
-                (rho * (na::SMatrix::from_diagonal(
+                (rho * (Operator::from_diagonal(
                     &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
                 )))
                 .trace()
@@ -182,7 +179,7 @@ pub fn actualfeed() -> SolverResult<()> {
 }
 
 fn ferromagnetictriangle(weights: &[f64]) -> Operator<na::U8> {
-    let id = na::Matrix2::<na::Complex<f64>>::identity();
+    let id = Operator::<na::U2>::identity();
     let s1 = PAULIS
         .iter()
         .map(|pauli| pauli.kronecker(&id).kronecker(&id))
