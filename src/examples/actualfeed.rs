@@ -14,16 +14,20 @@ pub fn actualfeed() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
     let h = ferromagnetictriangle(&vec![1., 1., 5.]);
+    let eigen = h.symmetric_eigen();
     let l = h.clone();
     let hc = Operator::<na::U8>::zeros();
     let f1 = hc.clone();
-    let f0 = Operator::<na::U8>::from_element(na::Complex::ONE) - Operator::<na::U8>::identity();
+    let f0 = eigen.eigenvectors
+        * Operator::<na::U8>::from_element(na::Complex::ONE)
+        * eigen.eigenvectors.adjoint()
+        - Operator::<na::U8>::identity();
 
     let num_tries = 10;
     let final_time: f64 = 10.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
-    let decimation = 1;
+    let decimation = 10;
 
     let delta = 16.;
     let gamma = 0.5 * delta;
@@ -129,7 +133,7 @@ pub fn actualfeed() -> SolverResult<()> {
             .map(|i| sobsv[i * decimation])
             .collect();
         let smeas_dec = (0..smeas.len() / decimation)
-            .map(|i| meas[i * decimation])
+            .map(|i| smeas[i * decimation])
             .collect();
 
         let mut zaxis = plotpy::Curve::new();
