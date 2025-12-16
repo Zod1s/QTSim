@@ -35,24 +35,27 @@ fn main() -> utils::SolverResult<()> {
     // //     .map(|pauli| id.kronecker(&id).kronecker(&id).kronecker(&pauli))
     // //     .collect::<Vec<Operator<na::Const<16>>>>();
     //
-    // let weights = vec![1., 1., 5.];
+    // let weights = vec![0.5, 0.5, 3.0];
+    // let ferromag = -1.;
+    // let hm = 0.0;
     //
     // let h = -s1
     //     .iter()
     //     .zip(s2.iter())
     //     .zip(weights.iter())
-    //     .map(|((p1, p2), w)| p1 * p2.scale(*w))
+    //     .map(|((p1, p2), w)| p1 * p2.scale(ferromag * w))
     //     .sum::<Operator<na::U8>>()
     //     - s2.iter()
     //         .zip(s3.iter())
     //         .zip(weights.iter())
-    //         .map(|((p1, p2), w)| p1 * p2.scale(*w))
+    //         .map(|((p1, p2), w)| p1 * p2.scale(ferromag * w))
     //         .sum::<Operator<na::U8>>()
     //     - s3.iter()
     //         .zip(s1.iter())
     //         .zip(weights.iter())
-    //         .map(|((p1, p2), w)| p1 * p2.scale(*w))
-    //         .sum::<Operator<na::U8>>();
+    //         .map(|((p1, p2), w)| p1 * p2.scale(ferromag * w))
+    //         .sum::<Operator<na::U8>>()
+    //     - (s1[2] + s2[2] + s3[2]).scale(hm);
     // // + s4.iter()
     // //     .zip(s1.iter())
     // //     .zip(weights.iter())

@@ -13,25 +13,32 @@ use std::sync::{Arc, Mutex};
 pub fn actualfeed() -> SolverResult<()> {
     let mut plot = plotpy::Plot::new();
 
-    let h = ferromagnetictriangle(&vec![1., 1., 5.]);
-    let eigen = h.symmetric_eigen();
+    let h = ferromagnetictriangle(&vec![0.5, 0.5, 3.0]);
     let l = h.clone();
     let hc = Operator::<na::U8>::zeros();
     let f1 = hc.clone();
+
+    let eigen = h.symmetric_eigen();
     let f0 = eigen.eigenvectors
-        * Operator::<na::U8>::from_element(na::Complex::ONE)
-        * eigen.eigenvectors.adjoint()
-        - Operator::<na::U8>::identity();
+        * Operator::<na::U8>::from_fn(|i, j| {
+            if i == j - 1 || i == j + 1 {
+                na::Complex::ONE
+            } else {
+                na::Complex::ZERO
+            }
+        })
+        .scale(6.)
+        * eigen.eigenvectors.adjoint();
 
     let num_tries = 10;
-    let final_time: f64 = 10.0;
+    let final_time: f64 = 20.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
     let decimation = 10;
 
-    let delta = 16.;
-    let gamma = 0.5 * delta;
-    let y1 = -15.;
+    let delta = 10.;
+    let gamma = 0.2 * delta;
+    let y1 = 2. * eigen.eigenvalues.min();
     let epsilon = delta * 1.;
     let beta = 0.6;
     let k = 5000;
