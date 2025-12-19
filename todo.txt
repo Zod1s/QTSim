@@ -77,18 +77,20 @@ x evidenziare il tradeoff di \Delta
 
 - Capire la dinamica degli stati che sono "autostati" di L ma non di H_0 -> nel senso, avrei d\rho_t = -i[H_0, \rho_t]dt, deterministica e unitaria, quindi può uscire dall'autospazio? Perché allora asintoticamente c'è un problema, perché la varianza di L deve andare a zero, ma se \rho_t va a uno di questi stati, non può andare a 0, visto che potrebbe uscire dall'insieme (circa?) => se entra in uno di questi spazi, la dinamica rimane all'interno, cioè ho una dinamica residua che mi fa girare lo stato all'interno dell'insieme di stati con supporto sull'autospazio, ho degli effettivi equilibri (tutte le combinazioni convesse degli "autostati" comuni tra H_0 e L credo), ma in genere continuo a girare => non è un problema, è una dinamica non osservata semplicemente
 
-- Trovare un altro nome per \bar y e \hat y, perché non c'entrano particolarmente con il valore di y, nel senso che non sono una stima né una media né altro di simile, quindi serve un'altra notazione
+x Trovare un altro nome per \bar y e \hat y, perché non c'entrano particolarmente con il valore di y, nel senso che non sono una stima né una media né altro di simile, quindi serve un'altra notazione => x_t e \hat x_t
 
 |> Teoremi da modificare per permettere di lavorare con ground state degenere:
--> Usare come norma la norma 1, sapendo che la Lindblad è contrattiva in norma 1
--> "Model Assumptions" => togliere il fatto che \lambda_1 sia semplice
--> Dimostrare che gli insiemi di stati con supporto su un autospazio di L sono invarianti per la dinamica (Theorem 3.1 of https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6228517 and proof that L\sigma_t = \lambda\sigma_t)
--> Riscrivere il Teorema II.1 in modo da parlare di questi spazi, dicendo che sono stabili (fatto, su telefono)
--> Riscrivere della stabilità asintotica di questi spazi
--> Theorem III.1: Ridefinire V(\rho) = Tr[L\rho] - \lambda_1
--> Lemma 1, 2, 3: cambiare il limite in non appartiene all'insieme
--> Lemma 5: cambia V(\rho) come in Theorem III.1
--> Proof of Theorem III.1: cambia \rho_d in \mathcal S_=0, l'insieme di stati desiderato
--> Theorem III.2: cambiare di nuovo \rho_d con \mathcal S_=0 e la distanza da \rho_d con la distanza da \mathcal S_=0
--> Cambiare l'introduzione alla sezione sull'implementazione pratica, tra l'altro non è vero che possiamo rendere stabile qualsiasi stato
+x> Usare come norma la norma 1, sapendo che la Lindblad è contrattiva in norma 1
+x> "Model Assumptions" => togliere il fatto che \lambda_1 sia semplice
+x> Dimostrare che gli insiemi di stati con supporto su un autospazio di L sono invarianti per la dinamica (Theorem 3.1 of https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6228517 and proof that L\sigma_t = \lambda\sigma_t)
+x> Riscrivere il Teorema II.1 in modo da parlare di questi spazi, dicendo che sono stabili (fatto, su telefono)
+x> Riscrivere della stabilità asintotica di questi spazi
+x> Theorem III.1: Ridefinire V(\rho) = Tr[L\rho] - \lambda_1
+x> Lemma 1, 2, 3: cambiare il limite in non appartiene all'insieme
+x> Lemma 5: cambia V(\rho) come in Theorem III.1
+x> Proof of Theorem III.1: cambia \rho_d in \mathcal S_=0, l'insieme di stati desiderato
+x> Theorem III.2: cambiare di nuovo \rho_d con \mathcal S_=0 e la distanza da \rho_d con la distanza da \mathcal S_=0
+x> Cambiare l'introduzione alla sezione sull'implementazione pratica, tra l'altro non è vero che possiamo rendere stabile qualsiasi stato
+
+-> Parlare di target subspace, capendo se c'è un modo per parlare del sottospazio confondendolo con l'insieme di stati sul sottospazio
 

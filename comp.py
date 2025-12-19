@@ -25,13 +25,14 @@ print(H)
 # H = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
 # L = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
 # F0 = np.ones((8, 8)) - np.eye(8)
-F0 = np.diag([1, 1, 1, 1, 1, 1, 1], k=1)
+F0 = np.diag([0, 0, 0, 0, 0, 0, 0], k=1)
 F0 = F0 + np.conj(F0.T)
 print(F0)
 eigs, eigvs = np.linalg.eigh(H)
 print(eigs)
 F0 = eigvs @ F0 @ np.conj(eigvs.T)
-L = H
+# L = H
+L = np.zeros((8, 8))
 
 # Lhat = L - 1j * F1
 # Hhat = H + 0.5 * (F1 @ L + np.conj(L).T @ F1)
