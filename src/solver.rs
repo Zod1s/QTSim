@@ -77,7 +77,7 @@ where
         }
     }
 
-    pub fn integrate(&mut self) -> SolverResult<()> {
+    pub fn integrate(&mut self) {
         self.results.push(self.t0, self.x0.clone());
         let mut t = self.t0;
         let mut x = self.x0.clone();
@@ -109,11 +109,9 @@ where
             x += (&k1 + &k2.scale(2.) + &k3.scale(2.) + &k4).scale(self.step_size / 6.);
             self.results.push(t, x.clone());
         }
-
-        Ok(())
     }
 
-    pub fn step(&mut self, t: f64, x: &State<D>) -> SolverResult<(f64, State<D>)> {
+    pub fn step(&mut self, t: f64, x: &State<D>) -> (f64, State<D>) {
         let shape = x.shape_generic();
         let mut k1 = na::OMatrix::zeros_generic(shape.0, shape.1);
         let mut k2 = na::OMatrix::zeros_generic(shape.0, shape.1);
@@ -141,7 +139,7 @@ where
         let x = x + (&k1 + &k2.scale(2.) + &k3.scale(2.) + &k4).scale(self.step_size / 6.);
         self.results.push(t, x.clone());
 
-        Ok((t, x))
+        (t, x)
     }
 
     /// Getter for the independent variable's output.
@@ -247,7 +245,7 @@ where
         }
     }
 
-    pub fn integrate(&mut self) -> SolverResult<()> {
+    pub fn integrate(&mut self) {
         // TODO modify to handle multiple outputs
         let mut dw = Vec::new();
         self.f.generate_noises(self.step_size, &mut dw);
@@ -269,11 +267,9 @@ where
 
             self.results.push(t, x.clone(), dy);
         }
-
-        Ok(())
     }
 
-    pub fn step(&mut self, t: f64, x: &State<D>) -> SolverResult<(f64, State<D>)> {
+    pub fn step(&mut self, t: f64, x: &State<D>) -> (f64, State<D>) {
         // TODO modify to handle multiple outputs
         let mut dw = Vec::new();
         self.f.generate_noises(self.step_size, &mut dw);
@@ -290,7 +286,7 @@ where
         self.f.generate_noises(self.step_size, &mut dw);
         dy = self.f.measurement(&x, self.step_size, dw[0]);
 
-        Ok((t, x.clone()))
+        (t, x.clone())
     }
 
     /// Getter for the independent variable's output.

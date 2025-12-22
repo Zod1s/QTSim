@@ -50,7 +50,7 @@ pub fn wmseq() -> SolverResult<()> {
     for i in 0..num_tries {
         bar.inc(1);
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (_, rho_out, _) = solver.results().get();
 
@@ -109,7 +109,7 @@ pub fn wmseq() -> SolverResult<()> {
 
     let system = systems::qubitwisemanfme::QubitWisemanFME::new(h, l, f);
     let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
-    solver.integrate()?;
+    solver.integrate();
 
     let (_, rho_out) = solver.results().get();
 

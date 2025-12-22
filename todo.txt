@@ -37,7 +37,7 @@ Feedback quantum cooling
 |> Code improvements
 |- Add stepping function to the solver, to solve the trajectories step by step and allow for the median computation
 |- Decouple simulation and control time, simulating at a higher rate to simulate a discrete-time controller, whereas as of now we are simulating an istantaneous feedback
-|- Understand how to parallelise
+|x Understand how to parallelise
 |- Add a function to generate a random density matrix by generating a random X and then computing \rho = X^\dag X / Tr[X^\dag X]
 |- Add efficiency support, test its impact
 |- Add a function to set the rng of each system, so that I can create an array of references of systems, to write more compactly multiple tests with spawned threads
@@ -71,11 +71,11 @@ x questo segnale ci permette di capire se stiamo convergendo verso lo stato corr
 x mettere \hat y e y^\Delta_t come equation
 x evidenziare il tradeoff di \Delta
 
-- Ricordarsi che ho già supposto che Tr[L] < N\lambda_2, quindi devo esplicitare il fatto che \bar \rho nella dimostrazione è sempre almeno \rho_{mix}, e devo assicurarmi che sia l'unico, ma se lo è, allora l'ipotesi sulla traccia di L mi garantisce la veridicità dell'ipotesi => Che succede se la Lindblad ha più equilibri? Sono tutti asintoticamente stabili e il loro insieme è un insieme globalmente asintoticamente stabile? Se sì, allora quell'ipotesi è più facile da inserire, altrimenti bisogna capire.
+x Ricordarsi che ho già supposto che Tr[L] < N\lambda_2, quindi devo esplicitare il fatto che \bar \rho nella dimostrazione è sempre almeno \rho_{mix}, e devo assicurarmi che sia l'unico, ma se lo è, allora l'ipotesi sulla traccia di L mi garantisce la veridicità dell'ipotesi => Che succede se la Lindblad ha più equilibri? Sono tutti asintoticamente stabili e il loro insieme è un insieme globalmente asintoticamente stabile? Se sì, allora quell'ipotesi è più facile da inserire, altrimenti bisogna capire.
 
-- Vedere se si riesce a riscrivere con ground state degenere -> Unico problema potrebbe essere la definizione di V(\rho), perché per ora è basata sullo stato, ma forse basta riscriverla come V(\rho) = Tr[L\rho] - \lambda_1, in questo modo stiamo effettivamente calcolando la "distanza" dagli stati con supporto esclusivamente sull'autospazio a energia minima -> Per il resto, non dovrebbero esserci problemi (?)
+x Vedere se si riesce a riscrivere con ground state degenere -> Unico problema potrebbe essere la definizione di V(\rho), perché per ora è basata sullo stato, ma forse basta riscriverla come V(\rho) = Tr[L\rho] - \lambda_1, in questo modo stiamo effettivamente calcolando la "distanza" dagli stati con supporto esclusivamente sull'autospazio a energia minima -> Per il resto, non dovrebbero esserci problemi (?)
 
-- Capire la dinamica degli stati che sono "autostati" di L ma non di H_0 -> nel senso, avrei d\rho_t = -i[H_0, \rho_t]dt, deterministica e unitaria, quindi può uscire dall'autospazio? Perché allora asintoticamente c'è un problema, perché la varianza di L deve andare a zero, ma se \rho_t va a uno di questi stati, non può andare a 0, visto che potrebbe uscire dall'insieme (circa?) => se entra in uno di questi spazi, la dinamica rimane all'interno, cioè ho una dinamica residua che mi fa girare lo stato all'interno dell'insieme di stati con supporto sull'autospazio, ho degli effettivi equilibri (tutte le combinazioni convesse degli "autostati" comuni tra H_0 e L credo), ma in genere continuo a girare => non è un problema, è una dinamica non osservata semplicemente
+x Capire la dinamica degli stati che sono "autostati" di L ma non di H_0 -> nel senso, avrei d\rho_t = -i[H_0, \rho_t]dt, deterministica e unitaria, quindi può uscire dall'autospazio? Perché allora asintoticamente c'è un problema, perché la varianza di L deve andare a zero, ma se \rho_t va a uno di questi stati, non può andare a 0, visto che potrebbe uscire dall'insieme (circa?) => se entra in uno di questi spazi, la dinamica rimane all'interno, cioè ho una dinamica residua che mi fa girare lo stato all'interno dell'insieme di stati con supporto sull'autospazio, ho degli effettivi equilibri (tutte le combinazioni convesse degli "autostati" comuni tra H_0 e L credo), ma in genere continuo a girare => non è un problema, è una dinamica non osservata semplicemente
 
 x Trovare un altro nome per \bar y e \hat y, perché non c'entrano particolarmente con il valore di y, nel senso che non sono una stima né una media né altro di simile, quindi serve un'altra notazione => x_t e \hat x_t
 

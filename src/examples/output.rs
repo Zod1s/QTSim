@@ -85,41 +85,36 @@ pub fn output() -> SolverResult<()> {
             .expect("Could not access plot"),
     );
 
-    (0..num_tries)
-        .into_par_iter()
-        .progress_with(bar)
-        .map(|i| -> Result<(), SolverError> {
-            let mut rng = StdRng::seed_from_u64(i as u64);
-            let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng,
-            );
-            let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-            solver.integrate()?;
+    (0..num_tries).into_par_iter().progress_with(bar).map(|i| {
+        let mut rng = StdRng::seed_from_u64(i as u64);
+        let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+            h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng,
+        );
+        let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        solver.integrate();
 
-            let (t_out, rho_out, dy_out) = solver.results().get();
+        let (t_out, rho_out, dy_out) = solver.results().get();
 
-            let obsv = rho_out
-                .iter()
-                .map(|rho| fidelity(rho, &rhod))
-                .collect::<Vec<f64>>();
+        let obsv = rho_out
+            .iter()
+            .map(|rho| fidelity(rho, &rhod))
+            .collect::<Vec<f64>>();
 
-            let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
-                .map(|i| t_out[i * decimation])
-                .collect();
+        let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
+            .map(|i| t_out[i * decimation])
+            .collect();
 
-            let obsv_dec = (0..obsv.len() / decimation)
-                .map(|i| obsv[i * decimation])
-                .collect();
+        let obsv_dec = (0..obsv.len() / decimation)
+            .map(|i| obsv[i * decimation])
+            .collect();
 
-            let mut fidline = plotpy::Curve::new();
-            fidline
-                .set_line_color(colors[i])
-                .draw(&t_out_dec, &obsv_dec);
+        let mut fidline = plotpy::Curve::new();
+        fidline
+            .set_line_color(colors[i])
+            .draw(&t_out_dec, &obsv_dec);
 
-            plot.lock().expect("Could not access plot").add(&fidline);
-            Ok(())
-        })
-        .collect::<Result<Vec<()>, SolverError>>()?;
+        plot.lock().expect("Could not access plot").add(&fidline);
+    });
 
     // for i in 0..num_tries {
     // constrainedlayout(&format!("Images/plot{i}"), &mut plots[i], true)?;

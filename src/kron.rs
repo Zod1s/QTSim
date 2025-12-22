@@ -44,7 +44,7 @@ pub fn vectorisationexample() -> SolverResult<()> {
 
         let system = systems::wisemanfme::WisemanFME::new(h, l, f1);
         let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (t_out, rho_out) = solver.results().get();
 
@@ -122,7 +122,7 @@ pub fn lyapunovtrend() -> SolverResult<()> {
 
         let system = systems::wisemanfme::WisemanFME::new(h, l, f1);
         let mut solver = Rk4::new(system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (t_out, rho_out) = solver.results().get();
 

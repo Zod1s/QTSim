@@ -80,7 +80,7 @@ pub fn timebased() -> SolverResult<()> {
         );
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (t_out, rho_out, dy_out) = solver.results().get();
 
@@ -96,7 +96,7 @@ pub fn timebased() -> SolverResult<()> {
 
         let mut controlledsolver =
             StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-        controlledsolver.integrate()?;
+        controlledsolver.integrate();
 
         let (ct_out, crho_out, cdy_out) = controlledsolver.results().get();
 
@@ -112,7 +112,7 @@ pub fn timebased() -> SolverResult<()> {
 
         let mut controlledsolver2 =
             StochasticSolver::new(&mut controlledsystem2, 0.0, x0, final_time, dt);
-        controlledsolver2.integrate()?;
+        controlledsolver2.integrate();
 
         let (ct_out2, crho_out2, cdy_out2) = controlledsolver2.results().get();
 

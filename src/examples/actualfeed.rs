@@ -27,7 +27,7 @@ pub fn actualfeed() -> SolverResult<()> {
                 na::Complex::ZERO
             }
         })
-        .scale(6.)
+        .scale(4.)
         * eigen.eigenvectors.adjoint();
 
     let num_tries = 10;
@@ -75,7 +75,7 @@ pub fn actualfeed() -> SolverResult<()> {
         );
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (t_out, rho_out, dy_out) = solver.results().get();
 
@@ -98,12 +98,15 @@ pub fn actualfeed() -> SolverResult<()> {
         // let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
         //     h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
         // );
-        let mut controlledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
-            h, l, hc, f0, f1, y1, delta, gamma, &mut rng2,
+        let mut controlledsystem = systems::multilevelcompletefeedback::Feedback2::new(
+            h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng2,
         );
+        // let mut controlledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
+        //     h, l, hc, f0, f1, y1, delta, gamma, &mut rng2,
+        // );
         let mut controlledsolver =
             StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-        controlledsolver.integrate()?;
+        controlledsolver.integrate();
 
         let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
 
@@ -174,41 +177,4 @@ pub fn actualfeed() -> SolverResult<()> {
     bar.finish();
 
     constrainedlayout("Images/multilevelwmreal1", &mut plot, true)
-}
-
-fn ferromagnetictriangle(weights: &[f64]) -> Operator<na::U8> {
-    let id = Operator::<na::U2>::identity();
-    let s1 = PAULIS
-        .iter()
-        .map(|pauli| pauli.kronecker(&id).kronecker(&id))
-        .collect::<Vec<Operator<na::U8>>>();
-
-    let s2 = PAULIS
-        .iter()
-        .map(|pauli| id.kronecker(&pauli).kronecker(&id))
-        .collect::<Vec<Operator<na::U8>>>();
-
-    let s3 = PAULIS
-        .iter()
-        .map(|pauli| id.kronecker(&id).kronecker(&pauli))
-        .collect::<Vec<Operator<na::U8>>>();
-
-    let h = -s1
-        .iter()
-        .zip(s2.iter())
-        .zip(weights.iter())
-        .map(|((p1, p2), w)| p1 * p2.scale(*w))
-        .sum::<Operator<na::U8>>()
-        - s2.iter()
-            .zip(s3.iter())
-            .zip(weights.iter())
-            .map(|((p1, p2), w)| p1 * p2.scale(*w))
-            .sum::<Operator<na::U8>>()
-        - s3.iter()
-            .zip(s1.iter())
-            .zip(weights.iter())
-            .map(|((p1, p2), w)| p1 * p2.scale(*w))
-            .sum::<Operator<na::U8>>();
-
-    h
 }

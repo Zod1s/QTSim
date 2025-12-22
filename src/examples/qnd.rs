@@ -77,7 +77,7 @@ pub fn qnd() -> SolverResult<()> {
         let tf = system.tf();
 
         let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-        solver.integrate()?;
+        solver.integrate();
 
         let (t_out, rho_out, dy_out) = solver.results().get();
 

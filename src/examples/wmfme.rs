@@ -26,7 +26,7 @@ pub fn wmfme() -> SolverResult<()> {
         // let x0 = na::Matrix2::new(1., 0., 0., 0.).cast();
 
         let mut solver = Rk4::new(system, 0.0, x0, 20.0, 0.001);
-        solver.integrate()?;
+        solver.integrate();
 
         let (_, rho_out) = solver.results().get();
 

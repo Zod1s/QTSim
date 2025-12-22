@@ -5,7 +5,7 @@ pauliy = np.array([[0, -1j], [1j, 0]])
 pauliz = np.array([[1, 0], [0, -1]])
 
 paulis = [paulix, pauliy, pauliz]
-weights = [0.5, 0.5, 2]
+weights = [0.5, 0.5, 3]
 
 s1 = list(map(lambda x: np.kron(np.kron(x, np.eye(2)), np.eye(2)), paulis))
 s2 = list(map(lambda x: np.kron(np.kron(np.eye(2), x), np.eye(2)), paulis))
@@ -13,11 +13,11 @@ s3 = list(map(lambda x: np.kron(np.kron(np.eye(2), np.eye(2)), x), paulis))
 
 H = np.zeros((8, 8), dtype=np.complex128)
 
-for (p1, p2, w) in zip(s1, s2, weights):
+for p1, p2, w in zip(s1, s2, weights):
     H -= p1 @ p2 * w
-for (p1, p2, w) in zip(s2, s3, weights):
+for p1, p2, w in zip(s2, s3, weights):
     H -= p1 @ p2 * w
-for (p1, p2, w) in zip(s3, s1, weights):
+for p1, p2, w in zip(s3, s1, weights):
     H -= p1 @ p2 * w
 
 print(H)
@@ -31,8 +31,7 @@ print(F0)
 eigs, eigvs = np.linalg.eigh(H)
 print(eigs)
 F0 = eigvs @ F0 @ np.conj(eigvs.T)
-# L = H
-L = np.zeros((8, 8))
+L = H
 
 # Lhat = L - 1j * F1
 # Hhat = H + 0.5 * (F1 @ L + np.conj(L).T @ F1)
@@ -42,9 +41,11 @@ L = np.zeros((8, 8))
 
 I = np.eye(8)
 
-A = -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I)) + \
-    np.kron(np.conj(L), L) - 0.5 * \
-    (np.kron(I, np.conj(L.T) @ L) + np.kron(L.T @ np.conj(L), I))
+A = (
+    -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I))
+    + np.kron(np.conj(L), L)
+    - 0.5 * (np.kron(I, np.conj(L.T) @ L) + np.kron(L.T @ np.conj(L), I))
+)
 
 # print("Spectrum")
 # print(np.linalg.eig(A))

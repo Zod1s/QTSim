@@ -479,3 +479,40 @@ pub fn median(v: &mut [f64]) -> f64 {
         v[mid]
     }
 }
+
+pub fn ferromagnetictriangle(weights: &[f64]) -> Operator<na::U8> {
+    let id = Operator::<na::U2>::identity();
+    let s1 = PAULIS
+        .iter()
+        .map(|pauli| pauli.kronecker(&id).kronecker(&id))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let s2 = PAULIS
+        .iter()
+        .map(|pauli| id.kronecker(&pauli).kronecker(&id))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let s3 = PAULIS
+        .iter()
+        .map(|pauli| id.kronecker(&id).kronecker(&pauli))
+        .collect::<Vec<Operator<na::U8>>>();
+
+    let h = -s1
+        .iter()
+        .zip(s2.iter())
+        .zip(weights.iter())
+        .map(|((p1, p2), w)| p1 * p2.scale(*w))
+        .sum::<Operator<na::U8>>()
+        - s2.iter()
+            .zip(s3.iter())
+            .zip(weights.iter())
+            .map(|((p1, p2), w)| p1 * p2.scale(*w))
+            .sum::<Operator<na::U8>>()
+        - s3.iter()
+            .zip(s1.iter())
+            .zip(weights.iter())
+            .map(|((p1, p2), w)| p1 * p2.scale(*w))
+            .sum::<Operator<na::U8>>();
+
+    h
+}
