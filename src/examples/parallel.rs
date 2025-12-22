@@ -383,5 +383,5 @@ pub fn parallel() -> SolverResult<()> {
         .add(&time_curve4)
         .legend();
 
-    constrainedlayout("Images/parallel2", &mut plot, true)
+    constrainedlayout("Images/parallel3", &mut plot, true)
 }
