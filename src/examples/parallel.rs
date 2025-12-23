@@ -18,30 +18,30 @@ pub fn parallel() -> SolverResult<()> {
         .expect("Could not create threadpool");
     let mut plot = plotpy::Plot::new();
 
-    // let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let hc = na::Matrix3::zeros();
-    // let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
-    // let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
-    // let f1 = na::Matrix3::zeros();
-    //
-    // let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
-    let h = ferromagnetictriangle(&vec![0.5, 0.5, 3.0]);
-    let l = h.clone();
-    let hc = Operator::<na::U8>::zeros();
-    let f1 = hc.clone();
+    let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    let hc = na::Matrix3::zeros();
+    let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
+    let l = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
+    let f1 = na::Matrix3::zeros();
 
-    let eigen = h.symmetric_eigen();
-    let f0 = eigen.eigenvectors
-        * Operator::<na::U8>::from_fn(|i, j| {
-            if i == j - 1 || i == j + 1 {
-                na::Complex::ONE
-            } else {
-                na::Complex::ZERO
-            }
-        })
-        .scale(4.)
-        * eigen.eigenvectors.adjoint();
-    let rhod = Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
+    let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
+    // let h = ferromagnetictriangle(&vec![0.5, 0.5, 3.0]);
+    // let l = h.clone();
+    // let hc = Operator::<na::U3>::zeros();
+    // let f1 = hc.clone();
+    //
+    // let eigen = h.symmetric_eigen();
+    // let f0 = eigen.eigenvectors
+    //     * Operator::<na::U3>::from_fn(|i, j| {
+    //         if i == j - 1 || i == j + 1 {
+    //             na::Complex::ONE
+    //         } else {
+    //             na::Complex::ZERO
+    //         }
+    //     })
+    //     .scale(4.)
+    //     * eigen.eigenvectors.adjoint();
+    // let rhod = Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
 
     let num_tries = 50;
     let num_inner_tries = 10;
@@ -57,9 +57,11 @@ pub fn parallel() -> SolverResult<()> {
     let mut avg_time_fidelity4 = vec![0.; num_steps + 1];
     let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
 
-    let delta = 10.;
+    // let delta = 10.;
+    let delta = 3.;
     let gamma = 0.2 * delta;
-    let y1 = 2. * eigen.eigenvalues.min();
+    let y1 = -2.;
+    // let y1 = 2. * eigen.eigenvalues.min();
     let epsilon = delta * 1.;
     let beta = 0.6;
     let k1 = 5000;
@@ -82,7 +84,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -90,7 +92,7 @@ pub fn parallel() -> SolverResult<()> {
                         h,
                         l,
                         hc,
-                        Operator::<na::U8>::zeros(),
+                        Operator::<na::U3>::zeros(),
                         f1,
                         y1,
                         delta,
@@ -124,7 +126,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -156,7 +158,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -188,7 +190,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -220,7 +222,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -252,7 +254,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -284,7 +286,7 @@ pub fn parallel() -> SolverResult<()> {
         s.spawn(|s| {
             for i in 0..num_tries {
                 bar.inc(1);
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = random_pure_state::<na::U3>(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
