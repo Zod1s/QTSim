@@ -12,8 +12,8 @@ mod wiener;
 use crate::utils::*;
 
 fn main() -> utils::SolverResult<()> {
-    examples::actualfeed::actualfeed()
-    // examples::parallel::parallel()
+    // examples::actualfeed::actualfeed()
+    examples::parallel::parallel()
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
     // let s1 = PAULIS
     //     .iter()
