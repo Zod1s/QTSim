@@ -239,13 +239,6 @@ where
         if self.count < self.lastdys.len() {
             self.count += 1;
         }
-        if self.y.is_nan() {
-            panic!(
-                "Cannot work with NaN y, f0: {}, k: {}",
-                self.f0,
-                self.lastdys.len()
-            );
-        }
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
