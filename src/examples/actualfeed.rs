@@ -30,8 +30,8 @@ pub fn actualfeed() -> SolverResult<()> {
         .scale(4.)
         * eigen.eigenvectors.adjoint();
 
-    let num_tries = 10;
-    let final_time: f64 = 20.0;
+    let num_tries = 20;
+    let final_time: f64 = 10.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
     let decimation = 10;
@@ -54,9 +54,10 @@ pub fn actualfeed() -> SolverResult<()> {
             .unwrap(),
     );
 
+    let x0 = random_pure_state::<na::U8>(Some(1000));
+
     for i in 0..num_tries {
         bar.inc(1);
-        let x0 = random_pure_state::<na::U8>(Some(10 * (i + 1)));
 
         let mut rng1 = StdRng::seed_from_u64(i);
         let mut rng2 = StdRng::seed_from_u64(i);
@@ -98,39 +99,39 @@ pub fn actualfeed() -> SolverResult<()> {
         // let mut controlledsystem = systems::multilevelcompletefeedback::Feedback::new(
         //     h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng2,
         // );
-        let mut controlledsystem = systems::multilevelcompletefeedback::Feedback2::new(
-            h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng2,
-        );
+        // let mut controlledsystem = systems::multilevelcompletefeedback::Feedback2::new(
+        //     h, l, hc, f0, f1, y1, k, delta, gamma, beta, epsilon, &mut rng2,
+        // );
         // let mut controlledsystem = systems::idealmultilevelcompletefeedback::Feedback::new(
         //     h, l, hc, f0, f1, y1, delta, gamma, &mut rng2,
         // );
-        let mut controlledsolver =
-            StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
-        controlledsolver.integrate();
-
-        let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
-
-        let sobsv = srho_out
-            .iter()
-            .map(|rho| {
-                (rho * (Operator::from_diagonal(
-                    &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
-                )))
-                .trace()
-                .re
-            })
-            .collect::<Vec<f64>>();
-        let smeas = srho_out
-            .iter()
-            .map(|rho| (rho * l).trace().re)
-            .collect::<Vec<f64>>();
+        // let mut controlledsolver =
+        //     StochasticSolver::new(&mut controlledsystem, 0.0, x0, final_time, dt);
+        // controlledsolver.integrate();
+        //
+        // let (st_out, srho_out, sdy_out) = controlledsolver.results().get();
+        //
+        // let sobsv = srho_out
+        //     .iter()
+        //     .map(|rho| {
+        //         (rho * (Operator::from_diagonal(
+        //             &na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast(),
+        //         )))
+        //         .trace()
+        //         .re
+        //     })
+        //     .collect::<Vec<f64>>();
+        // let smeas = srho_out
+        //     .iter()
+        //     .map(|rho| (rho * l).trace().re)
+        //     .collect::<Vec<f64>>();
 
         let t_out_dec: Vec<f64> = (0..t_out.len() / decimation)
             .map(|i| t_out[i * decimation])
             .collect();
-        let st_out_dec: Vec<f64> = (0..st_out.len() / decimation)
-            .map(|i| st_out[i * decimation])
-            .collect();
+        // let st_out_dec: Vec<f64> = (0..st_out.len() / decimation)
+        //     .map(|i| st_out[i * decimation])
+        //     .collect();
 
         let obsv_dec = (0..obsv.len() / decimation)
             .map(|i| obsv[i * decimation])
@@ -139,42 +140,43 @@ pub fn actualfeed() -> SolverResult<()> {
             .map(|i| meas[i * decimation])
             .collect();
 
-        let sobsv_dec = (0..sobsv.len() / decimation)
-            .map(|i| sobsv[i * decimation])
-            .collect();
-        let smeas_dec = (0..smeas.len() / decimation)
-            .map(|i| smeas[i * decimation])
-            .collect();
+        // let sobsv_dec = (0..sobsv.len() / decimation)
+        //     .map(|i| sobsv[i * decimation])
+        //     .collect();
+        // let smeas_dec = (0..smeas.len() / decimation)
+        //     .map(|i| smeas[i * decimation])
+        //     .collect();
 
         let mut zaxis = plotpy::Curve::new();
         zaxis
-            .set_line_color(colors[i as usize])
+            // .set_line_color(colors[i as usize])
             .draw(&t_out_dec, &obsv_dec);
 
-        plot.set_subplot(2, 2, 1).add(&zaxis);
+        plot.set_subplot(2, 1, 1).add(&zaxis);
 
         let mut maxis = plotpy::Curve::new();
         maxis
-            .set_line_color(colors[i as usize])
+            // .set_line_color(colors[i as usize])
             .draw(&t_out_dec, &meas_dec);
 
-        plot.set_subplot(2, 2, 3).add(&maxis);
+        plot.set_subplot(2, 1, 2).add(&maxis);
 
-        let mut szaxis = plotpy::Curve::new();
-        szaxis
-            .set_line_color(colors[i as usize])
-            .draw(&st_out_dec, &sobsv_dec);
-
-        plot.set_subplot(2, 2, 2).add(&szaxis);
-
-        let mut smaxis = plotpy::Curve::new();
-        smaxis
-            .set_line_color(colors[i as usize])
-            .draw(&st_out_dec, &smeas_dec);
-
-        plot.set_subplot(2, 2, 4).add(&smaxis);
+        // let mut szaxis = plotpy::Curve::new();
+        // szaxis
+        //     .set_line_color(colors[i as usize])
+        //     .draw(&st_out_dec, &sobsv_dec);
+        //
+        // plot.set_subplot(2, 2, 2).add(&szaxis);
+        //
+        // let mut smaxis = plotpy::Curve::new();
+        // smaxis
+        //     .set_line_color(colors[i as usize])
+        //     .draw(&st_out_dec, &smeas_dec);
+        //
+        // plot.set_subplot(2, 2, 4).add(&smaxis);
     }
     bar.finish();
 
-    constrainedlayout("Images/multilevelwmreal1", &mut plot, true)
+    println!("Plotting");
+    constrainedlayout("Images/multilevelwmreal10", &mut plot, true)
 }
