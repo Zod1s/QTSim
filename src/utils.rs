@@ -423,6 +423,20 @@ where
     fid
 }
 
+pub fn fidelity_to_projector<D>(rho: &State<D>, sigma: &State<D>) -> f64
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
+    let temp = sigma * rho * sigma;
+    temp.symmetric_eigenvalues()
+        .map(|e| if e > TOL { f64::sqrt(e) } else { 0. })
+        .sum()
+        .powi(2)
+}
+
 pub fn rouchonstep<D>(
     dt: f64,
     rho: &State<D>,

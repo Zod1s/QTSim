@@ -108,7 +108,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_free_fidelity = avg_free_fidelity
@@ -144,7 +144,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_ctrl_fidelity = avg_ctrl_fidelity
@@ -180,7 +180,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_ideal_fidelity = avg_ideal_fidelity
@@ -216,7 +216,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_time_fidelity1 = avg_time_fidelity1
@@ -252,7 +252,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_time_fidelity2 = avg_time_fidelity2
@@ -288,7 +288,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_time_fidelity3 = avg_time_fidelity3
@@ -324,7 +324,7 @@ pub fn parallel() -> SolverResult<()> {
 
                     let obsv = rho_out
                         .iter()
-                        .map(|rho| fidelity(rho, &rhod))
+                        .map(|rho| fidelity_to_projector(rho, &rhod))
                         .collect::<Vec<f64>>();
 
                     avg_time_fidelity4 = avg_time_fidelity4
@@ -394,5 +394,5 @@ pub fn parallel() -> SolverResult<()> {
         .add(&time_curve4)
         .legend();
 
-    constrainedlayout("Images/parallel3", &mut plot, true)
+    constrainedlayout("Images/parallel_heis", &mut plot, true)
 }
