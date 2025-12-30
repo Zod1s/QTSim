@@ -2,3 +2,13 @@
     Finished `release` profile [optimized] target(s) in 1.41s
      Running `target/release/QTSim`
 Error: PlotPyError("python3 failed; please see the log file")
+   Compiling QTSim v0.1.0 (/home/raceup/Franco/QTSim)
+    Finished `release` profile [optimized] target(s) in 1.47s
+     Running `target/release/QTSim`
+Any NaN 3: false
+Any NaN 2: false
+Any NaN 7: false
+Any NaN 6: false
+Any NaN 5: false
+Any NaN 4: false
+Any NaN 1: false
