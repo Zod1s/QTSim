@@ -43,9 +43,9 @@ pub fn parallel() -> SolverResult<()> {
         * eigen.eigenvectors.adjoint();
     let rhod = Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
 
-    let num_tries = 500;
+    let num_tries = 1000;
     let num_inner_tries = 20;
-    let final_time: f64 = 10.0;
+    let final_time: f64 = 30.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -74,11 +74,11 @@ pub fn parallel() -> SolverResult<()> {
         "#ff0037", "#e1ff00",
     ];
 
-    let bar = ProgressBar::new(7 * num_tries).with_style(
-        ProgressStyle::default_bar()
-            .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-            .unwrap(),
-    );
+    // let bar = ProgressBar::new(7 * num_tries).with_style(
+    //     ProgressStyle::default_bar()
+    //         .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+    //         .unwrap(),
+    // );
 
     rayon::scope(|s| {
         s.spawn(|s| {
@@ -116,7 +116,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 1: {}",
@@ -152,7 +152,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 2: {}",
@@ -188,7 +188,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 3: {}",
@@ -224,7 +224,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 4: {}",
@@ -260,7 +260,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 5: {}",
@@ -296,7 +296,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 6: {}",
@@ -332,7 +332,7 @@ pub fn parallel() -> SolverResult<()> {
                         .map(|(x, y)| x + y)
                         .collect::<Vec<f64>>();
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             println!(
                 "Any NaN 7: {}",
@@ -344,7 +344,7 @@ pub fn parallel() -> SolverResult<()> {
                 .collect::<Vec<f64>>();
         });
     });
-    bar.finish();
+    // bar.finish();
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
