@@ -148,7 +148,7 @@ where
     }
 
     /// Getter for the dependent variables' output.
-    pub fn x_out(&self) -> &Vec<State<D>> {
+    pub fn state_out(&self) -> &Vec<State<D>> {
         self.results.get().1
     }
 
@@ -295,7 +295,7 @@ where
     }
 
     /// Getter for the dependent variables' output.
-    pub fn x_out(&self) -> &Vec<State<D>> {
+    pub fn state_out(&self) -> &Vec<State<D>> {
         self.results.get().1
     }
 

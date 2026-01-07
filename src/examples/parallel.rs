@@ -3,13 +3,15 @@ use crate::solver::{Rk4, StochasticSolver};
 use crate::systems;
 use crate::utils::*;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use polars::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
+use std::fs::File;
 use std::sync::{Arc, Mutex};
 
-const NUMTHREADS: usize = 30;
+const NUMTHREADS: usize = 7;
 
 pub fn parallel() -> SolverResult<()> {
     rayon::ThreadPoolBuilder::new()
@@ -27,12 +29,12 @@ pub fn parallel() -> SolverResult<()> {
     // let rhod = na::Matrix3::from_diagonal(&na::Vector3::new(1., 0., 0.)).cast();
     let h = ferromagnetictriangle(&vec![0.5, 0.5, 3.0]);
     let l = h.clone();
-    let hc = Operator::<na::U8>::zeros();
-    let f1 = hc.clone();
+    let hc = crate::utils::Operator::<na::U8>::zeros();
+    let f1 = crate::utils::Operator::<na::U8>::zeros();
 
     let eigen = h.symmetric_eigen();
     let f0 = eigen.eigenvectors
-        * Operator::<na::U8>::from_fn(|i, j| {
+        * crate::utils::Operator::<na::U8>::from_fn(|i, j| {
             if i == j - 1 || i == j + 1 {
                 na::Complex::ONE
             } else {
@@ -41,7 +43,10 @@ pub fn parallel() -> SolverResult<()> {
         })
         .scale(4.)
         * eigen.eigenvectors.adjoint();
-    let rhod = Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
+    let rhod =
+        crate::utils::Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
+
+    let state_gen = random_pure_state::<na::U8>;
 
     let num_tries = 1000;
     let num_inner_tries = 20;
@@ -50,12 +55,12 @@ pub fn parallel() -> SolverResult<()> {
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
     let mut avg_free_fidelity = vec![0.; num_steps + 1];
+    let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
     let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
     let mut avg_time_fidelity1 = vec![0.; num_steps + 1];
     let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
     let mut avg_time_fidelity3 = vec![0.; num_steps + 1];
     let mut avg_time_fidelity4 = vec![0.; num_steps + 1];
-    let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
 
     let delta = 10.;
     // let delta = 3.;
@@ -69,67 +74,36 @@ pub fn parallel() -> SolverResult<()> {
     let k3 = 50000;
     let k4 = 100000;
 
-    let colors = [
-        "#00FF00", "#358763", "#E78A18", "#00fbff", "#3e00ff", "#e64500", "#ffee00", "#0078ff",
-        "#ff0037", "#e1ff00",
-    ];
-
-    // let bar = ProgressBar::new(7 * num_tries).with_style(
-    //     ProgressStyle::default_bar()
-    //         .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-    //         .unwrap(),
-    // );
+    let bar = ProgressBar::new(7 * num_tries).with_style(
+        ProgressStyle::default_bar()
+            .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+            .unwrap(),
+    );
 
     rayon::scope(|s| {
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback::new(
-                        h,
-                        l,
-                        hc,
-                        Operator::<na::U8>::zeros(),
-                        f1,
-                        y1,
-                        delta,
-                        gamma,
-                        beta,
-                        epsilon,
-                        &mut rng,
-                    );
+                    let mut system = systems::sse::SSE::new(h, l, &mut rng);
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_free_fidelity = avg_free_fidelity
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_free_fidelity = sum_arrays(&avg_free_fidelity, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 1: {}",
-                avg_free_fidelity.iter().any(|a| a.is_nan())
-            );
-            avg_free_fidelity = avg_free_fidelity
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_free_fidelity = time_average(&avg_free_fidelity, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -139,33 +113,19 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_ctrl_fidelity = avg_ctrl_fidelity
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_ctrl_fidelity = sum_arrays(&avg_ctrl_fidelity, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 2: {}",
-                avg_ctrl_fidelity.iter().any(|a| a.is_nan())
-            );
-            avg_ctrl_fidelity = avg_ctrl_fidelity
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_ctrl_fidelity = time_average(&avg_ctrl_fidelity, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -175,33 +135,19 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_ideal_fidelity = avg_ideal_fidelity
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_ideal_fidelity = sum_arrays(&avg_ideal_fidelity, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 3: {}",
-                avg_ideal_fidelity.iter().any(|a| a.is_nan())
-            );
-            avg_ideal_fidelity = avg_ideal_fidelity
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_ideal_fidelity = time_average(&avg_ideal_fidelity, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -211,33 +157,19 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_time_fidelity1 = avg_time_fidelity1
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_time_fidelity1 = sum_arrays(&avg_time_fidelity1, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 4: {}",
-                avg_time_fidelity1.iter().any(|a| a.is_nan())
-            );
-            avg_time_fidelity1 = avg_time_fidelity1
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_time_fidelity1 = time_average(&avg_time_fidelity1, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -247,33 +179,19 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_time_fidelity2 = avg_time_fidelity2
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_time_fidelity2 = sum_arrays(&avg_time_fidelity2, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 5: {}",
-                avg_time_fidelity2.iter().any(|a| a.is_nan())
-            );
-            avg_time_fidelity2 = avg_time_fidelity2
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_time_fidelity2 = time_average(&avg_time_fidelity2, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -283,33 +201,19 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_time_fidelity3 = avg_time_fidelity3
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_time_fidelity3 = sum_arrays(&avg_time_fidelity3, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 6: {}",
-                avg_time_fidelity3.iter().any(|a| a.is_nan())
-            );
-            avg_time_fidelity3 = avg_time_fidelity3
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_time_fidelity3 = time_average(&avg_time_fidelity3, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
-                let x0 = random_pure_state::<na::U8>(Some(i));
+                let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
                     let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
@@ -319,32 +223,18 @@ pub fn parallel() -> SolverResult<()> {
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
-                    let (t_out, rho_out, dy_out) = solver.results().get();
 
-                    let obsv = rho_out
-                        .iter()
-                        .map(|rho| fidelity_to_projector(rho, &rhod))
-                        .collect::<Vec<f64>>();
+                    let rho_out = solver.state_out();
+                    let obsv = compute_fidelity(rho_out, &rhod);
 
-                    avg_time_fidelity4 = avg_time_fidelity4
-                        .iter()
-                        .zip(&obsv)
-                        .map(|(x, y)| x + y)
-                        .collect::<Vec<f64>>();
+                    avg_time_fidelity4 = sum_arrays(&avg_time_fidelity4, &obsv);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            println!(
-                "Any NaN 7: {}",
-                avg_time_fidelity4.iter().any(|a| a.is_nan())
-            );
-            avg_time_fidelity4 = avg_time_fidelity4
-                .iter()
-                .map(|f| f / (num_inner_tries as f64 * num_tries as f64))
-                .collect::<Vec<f64>>();
+            avg_time_fidelity4 = time_average(&avg_time_fidelity4, num_tries * num_inner_tries);
         });
     });
-    // bar.finish();
+    bar.finish();
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
@@ -355,6 +245,11 @@ pub fn parallel() -> SolverResult<()> {
         .set_label("Free evolution")
         .draw(&t_out, &avg_free_fidelity);
 
+    let mut ideal_curve = plotpy::Curve::new();
+    ideal_curve
+        .set_label("Ideal evolution")
+        .draw(&t_out, &avg_ideal_fidelity);
+
     let mut ctrl_curve = plotpy::Curve::new();
     ctrl_curve
         .set_label("Controlled evolution")
@@ -364,11 +259,6 @@ pub fn parallel() -> SolverResult<()> {
     time_curve1
         .set_label(&format!("Windowed evolution, k = {}", k1))
         .draw(&t_out, &avg_time_fidelity1);
-
-    let mut ideal_curve = plotpy::Curve::new();
-    ideal_curve
-        .set_label("Ideal evolution")
-        .draw(&t_out, &avg_ideal_fidelity);
 
     let mut time_curve2 = plotpy::Curve::new();
     time_curve2
@@ -394,5 +284,28 @@ pub fn parallel() -> SolverResult<()> {
         .add(&time_curve4)
         .legend();
 
-    constrainedlayout("Images/parallel_heis", &mut plot, true)
+    println!("Plotting");
+    constrainedlayout("Images/parallel_heis2", &mut plot, true)?;
+
+    println!("Saving to file");
+    let mut file = File::create("./heis.csv").expect("Could not create file");
+
+    let mut df: DataFrame = df!(
+        "time" => t_out,
+        "avg_free_fidelity" => avg_free_fidelity,
+        "avg_ideal_fidelity" => avg_ideal_fidelity,
+        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
+        "avg_time_fidelity1" => avg_time_fidelity1,
+        "avg_time_fidelity2" => avg_time_fidelity2,
+        "avg_time_fidelity3" => avg_time_fidelity3,
+        "avg_time_fidelity4" => avg_time_fidelity4,
+    )
+    .unwrap();
+
+    CsvWriter::new(&mut file)
+        .include_header(true)
+        .with_separator(b',')
+        .finish(&mut df);
+
+    Ok(())
 }

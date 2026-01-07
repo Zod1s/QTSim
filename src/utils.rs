@@ -159,9 +159,6 @@ where
     let mut decomp = x.symmetric_eigen();
     decomp.eigenvalues = decomp.eigenvalues.map(|e| e.max(0.));
     let x = decomp.recompose();
-    // for el in x.diagonal().iter_mut() {
-    //     *el = na::Complex::new(el.re, 0.);
-    // }
     let x = (&x + x.adjoint()).scale(0.5);
     x.scale(1. / x.trace().re)
 }
@@ -540,4 +537,32 @@ pub fn ferromagnetictriangle(weights: &[f64]) -> Operator<na::U8> {
             .sum::<Operator<na::U8>>();
 
     h
+}
+
+#[inline(always)]
+pub fn sum_arrays(array1: &[f64], array2: &[f64]) -> Vec<f64> {
+    array1
+        .iter()
+        .zip(array2)
+        .map(|(x, y)| x + y)
+        .collect::<Vec<f64>>()
+}
+
+#[inline(always)]
+pub fn time_average(array: &[f64], n: u64) -> Vec<f64> {
+    array.iter().map(|f| f / n as f64).collect::<Vec<f64>>()
+}
+
+#[inline(always)]
+pub fn compute_fidelity<D>(states: &[State<D>], projector: &State<D>) -> Vec<f64>
+where
+    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+{
+    states
+        .iter()
+        .map(|rho| fidelity_to_projector(rho, &projector))
+        .collect::<Vec<f64>>()
 }
