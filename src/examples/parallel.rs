@@ -285,7 +285,7 @@ pub fn parallel() -> SolverResult<()> {
         .legend();
 
     println!("Plotting");
-    constrainedlayout("Images/parallel_heis2", &mut plot, true)?;
+    constrainedlayout("Images/parallel_heis", &mut plot, true)?;
 
     println!("Saving to file");
     let mut file = File::create("./heis.csv").expect("Could not create file");
