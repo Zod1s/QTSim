@@ -10,10 +10,25 @@ mod utils;
 mod wiener;
 
 use crate::utils::*;
+use rayon::prelude::*;
+const NUMTHREADS: usize = 7;
 
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
-    examples::parallel::parallel()
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+        .build_global()
+        .expect("Could not create threadpool");
+
+    rayon::scope(|s| {
+        s.spawn(|s| {
+            examples::parallel::parallel_3d(false);
+        });
+        s.spawn(|s| {
+            examples::parallel::parallel_heis(false);
+        });
+    });
+
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
     // let s1 = PAULIS
     //     .iter()
@@ -69,4 +84,6 @@ fn main() -> utils::SolverResult<()> {
     // println!("Eigenvectors: {:.4}", eigen.eigenvectors.map(|v| v.re));
     //
     // Ok(())
+
+    Ok(())
 }
