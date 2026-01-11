@@ -11,7 +11,7 @@ mod wiener;
 
 use crate::utils::*;
 use rayon::prelude::*;
-const NUMTHREADS: usize = 7;
+const NUMTHREADS: usize = 14;
 
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
