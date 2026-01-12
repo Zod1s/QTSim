@@ -105,9 +105,6 @@ where
         *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
         let dy = self.measurement(rho, dt, dw[0]);
         self.y += dy;
-        if self.y.is_nan() {
-            panic!("Cannot work with NaN y, f0: {}", self.f0);
-        }
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
@@ -206,8 +203,6 @@ where
     fn system(&mut self, t: f64, dt: f64, rho: &State<D>, drho: &mut State<D>, dw: &Vec<f64>) {
         let avg = if t > self.tf {
             self.y / (self.count as f64 * dt)
-            // self.count provides a better behaviour
-            // (self.lastdys.len() as f64 * dt)
         } else {
             0.
         };
