@@ -14,6 +14,8 @@ use crate::utils::*;
 use rayon::prelude::*;
 const NUMTHREADS: usize = 14;
 
+// Consider optimising \beta and \varepsilon for the original controller and compute the optimal
+// window to reduce the variance under a certain threshold
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
     // rayon::ThreadPoolBuilder::new()
