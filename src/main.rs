@@ -12,17 +12,26 @@ mod wiener;
 
 use crate::utils::*;
 use rayon::prelude::*;
+use std::thread;
 const NUMTHREADS: usize = 14;
 
 // Consider optimising \beta and \varepsilon for the original controller and compute the optimal
 // window to reduce the variance under a certain threshold
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
-    // rayon::ThreadPoolBuilder::new()
-    //     .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
-    //     .build_global()
-    //     .expect("Could not create threadpool");
-    //
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+        .build_global()
+        .expect("Could not create threadpool");
+
+    let thread1 = thread::spawn(|| {
+        examples::parallel::parallel_3d(false);
+    });
+    let thread2 = thread::spawn(|| {
+        examples::parallel::parallel_heis(false);
+    });
+    thread1.join().unwrap();
+    thread2.join().unwrap();
     // rayon::scope(|s| {
     //     s.spawn(|s| {
     //         examples::parallel::parallel_3d(false);
@@ -32,7 +41,7 @@ fn main() -> utils::SolverResult<()> {
     //     });
     // });
 
-    dataplots::plot("./heis.csv")
+    // dataplots::plot("./heis.csv")
 
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
     // let s1 = PAULIS
@@ -88,5 +97,5 @@ fn main() -> utils::SolverResult<()> {
     // println!("Sum of eigenvalues: {:.4}", eigen.eigenvalues.sum());
     // println!("Eigenvectors: {:.4}", eigen.eigenvectors.map(|v| v.re));
     //
-    // Ok(())
+    Ok(())
 }
