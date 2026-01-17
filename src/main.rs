@@ -13,7 +13,10 @@ mod wiener;
 use crate::utils::*;
 use rayon::prelude::*;
 use std::thread;
-const NUMTHREADS: usize = 14;
+
+const NUMJOBS: usize = 1;
+const NUMSIMS: usize = 7;
+const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 
 // Consider optimising \beta and \varepsilon for the original controller and compute the optimal
 // window to reduce the variance under a certain threshold
@@ -24,14 +27,16 @@ fn main() -> utils::SolverResult<()> {
         .build_global()
         .expect("Could not create threadpool");
 
-    let thread1 = thread::spawn(|| {
-        examples::parallel::parallel_3d(false);
-    });
-    let thread2 = thread::spawn(|| {
-        examples::parallel::parallel_heis(false);
-    });
-    thread1.join().unwrap();
-    thread2.join().unwrap();
+    examples::parallel::parallel_anti_heis()?;
+
+    // let thread1 = thread::spawn(|| {
+    //     examples::parallel::parallel_3d();
+    // });
+    // let thread2 = thread::spawn(|| {
+    //     examples::parallel::parallel_heis();
+    // });
+    // thread1.join().unwrap();
+    // thread2.join().unwrap();
     // rayon::scope(|s| {
     //     s.spawn(|s| {
     //         examples::parallel::parallel_3d(false);
