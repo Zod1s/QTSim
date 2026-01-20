@@ -216,6 +216,26 @@ pub fn parallel_3d() -> SolverResult<()> {
         .map(|n| (n as f64) * dt)
         .collect::<Vec<f64>>();
 
+    println!("Saving to file");
+    let mut file = File::create("./3d.csv").expect("Could not create file");
+
+    let mut df: DataFrame = df!(
+        "time" => t_out,
+        "avg_free_fidelity" => avg_free_fidelity,
+        "avg_ideal_fidelity" => avg_ideal_fidelity,
+        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
+        "avg_time_fidelity1" => avg_time_fidelity1,
+        "avg_time_fidelity2" => avg_time_fidelity2,
+        "avg_time_fidelity3" => avg_time_fidelity3,
+        "avg_time_fidelity4" => avg_time_fidelity4,
+    )
+    .unwrap();
+
+    CsvWriter::new(&mut file)
+        .include_header(true)
+        .with_separator(b',')
+        .finish(&mut df);
+
     let mut free_curve = plotpy::Curve::new();
     free_curve
         .set_label("Free evolution")
@@ -262,26 +282,6 @@ pub fn parallel_3d() -> SolverResult<()> {
 
     println!("Plotting");
     constrainedlayout("Images/parallel_3d", &mut plot, true)?;
-
-    println!("Saving to file");
-    let mut file = File::create("./3d.csv").expect("Could not create file");
-
-    let mut df: DataFrame = df!(
-        "time" => t_out,
-        "avg_free_fidelity" => avg_free_fidelity,
-        "avg_ideal_fidelity" => avg_ideal_fidelity,
-        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
-        "avg_time_fidelity1" => avg_time_fidelity1,
-        "avg_time_fidelity2" => avg_time_fidelity2,
-        "avg_time_fidelity3" => avg_time_fidelity3,
-        "avg_time_fidelity4" => avg_time_fidelity4,
-    )
-    .unwrap();
-
-    CsvWriter::new(&mut file)
-        .include_header(true)
-        .with_separator(b',')
-        .finish(&mut df);
 
     Ok(())
 }
@@ -500,6 +500,26 @@ pub fn parallel_heis() -> SolverResult<()> {
         .map(|n| (n as f64) * dt)
         .collect::<Vec<f64>>();
 
+    println!("Saving to file");
+    let mut file = File::create("./heis.csv").expect("Could not create file");
+
+    let mut df: DataFrame = df!(
+        "time" => t_out,
+        "avg_free_fidelity" => avg_free_fidelity,
+        "avg_ideal_fidelity" => avg_ideal_fidelity,
+        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
+        "avg_time_fidelity1" => avg_time_fidelity1,
+        "avg_time_fidelity2" => avg_time_fidelity2,
+        "avg_time_fidelity3" => avg_time_fidelity3,
+        "avg_time_fidelity4" => avg_time_fidelity4,
+    )
+    .unwrap();
+
+    CsvWriter::new(&mut file)
+        .include_header(true)
+        .with_separator(b',')
+        .finish(&mut df);
+
     let mut free_curve = plotpy::Curve::new();
     free_curve
         .set_label("Free evolution")
@@ -547,26 +567,6 @@ pub fn parallel_heis() -> SolverResult<()> {
     println!("Plotting");
     constrainedlayout("Images/parallel_heis", &mut plot, true)?;
 
-    println!("Saving to file");
-    let mut file = File::create("./heis.csv").expect("Could not create file");
-
-    let mut df: DataFrame = df!(
-        "time" => t_out,
-        "avg_free_fidelity" => avg_free_fidelity,
-        "avg_ideal_fidelity" => avg_ideal_fidelity,
-        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
-        "avg_time_fidelity1" => avg_time_fidelity1,
-        "avg_time_fidelity2" => avg_time_fidelity2,
-        "avg_time_fidelity3" => avg_time_fidelity3,
-        "avg_time_fidelity4" => avg_time_fidelity4,
-    )
-    .unwrap();
-
-    CsvWriter::new(&mut file)
-        .include_header(true)
-        .with_separator(b',')
-        .finish(&mut df);
-
     Ok(())
 }
 
@@ -599,9 +599,6 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
             }
         })
         * eigen.eigenvectors.adjoint();
-
-    // let rhod =
-    //     crate::utils::Operator::from_diagonal(&na::vector![1., 0., 0., 0., 0., 0., 0., 1.].cast());
 
     let state_gen = random_pure_state::<na::U8>;
 
@@ -795,6 +792,26 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
         .map(|n| (n as f64) * dt)
         .collect::<Vec<f64>>();
 
+    println!("Saving to file");
+    let mut file = File::create("./anti_heis.csv").expect("Could not create file");
+
+    let mut df: DataFrame = df!(
+        "time" => t_out,
+        "avg_free_fidelity" => avg_free_fidelity,
+        "avg_ideal_fidelity" => avg_ideal_fidelity,
+        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
+        "avg_time_fidelity1" => avg_time_fidelity1,
+        "avg_time_fidelity2" => avg_time_fidelity2,
+        "avg_time_fidelity3" => avg_time_fidelity3,
+        "avg_time_fidelity4" => avg_time_fidelity4,
+    )
+    .unwrap();
+
+    CsvWriter::new(&mut file)
+        .include_header(true)
+        .with_separator(b',')
+        .finish(&mut df);
+
     let mut free_curve = plotpy::Curve::new();
     free_curve
         .set_label("Free evolution")
@@ -841,26 +858,6 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
 
     println!("Plotting");
     constrainedlayout("Images/parallel_anti_heis", &mut plot, true)?;
-
-    println!("Saving to file");
-    let mut file = File::create("./anti_heis.csv").expect("Could not create file");
-
-    let mut df: DataFrame = df!(
-        "time" => t_out,
-        "avg_free_fidelity" => avg_free_fidelity,
-        "avg_ideal_fidelity" => avg_ideal_fidelity,
-        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
-        "avg_time_fidelity1" => avg_time_fidelity1,
-        "avg_time_fidelity2" => avg_time_fidelity2,
-        "avg_time_fidelity3" => avg_time_fidelity3,
-        "avg_time_fidelity4" => avg_time_fidelity4,
-    )
-    .unwrap();
-
-    CsvWriter::new(&mut file)
-        .include_header(true)
-        .with_separator(b',')
-        .finish(&mut df);
 
     Ok(())
 }
