@@ -32,7 +32,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitNotPhysical<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysical<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState> for QubitNotPhysical<'a, R> {
     fn system(&mut self, t: f64, dt: f64, x: &QubitState, dx: &mut QubitState, dw: &Vec<f64>) {
         let drho = (hamiltonian_term(&(self.h + self.f.scale(self.dy / dt)), x)
             + measurement_term(&self.l, x)
@@ -49,5 +49,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitNotPhysi
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

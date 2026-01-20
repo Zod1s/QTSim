@@ -73,7 +73,7 @@ where
 }
 
 impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    StochasticSystem<State<D>> for Feedback<'a, R, D>
+    StochasticSystem<'a, R, State<D>> for Feedback<'a, R, D>
 where
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -113,6 +113,10 @@ where
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }
 
@@ -193,7 +197,7 @@ where
 }
 
 impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    StochasticSystem<State<D>> for Feedback2<'a, R, D>
+    StochasticSystem<'a, R, State<D>> for Feedback2<'a, R, D>
 where
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -242,5 +246,9 @@ where
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

@@ -3,7 +3,7 @@ use crate::utils::*;
 use polars::prelude::*;
 use std::fs::File;
 
-pub fn plot(path: &str) -> SolverResult<()> {
+pub fn plot(path: &str, name: &str) -> SolverResult<()> {
     let df = CsvReadOptions::default()
         .with_has_header(true)
         .with_parse_options(CsvParseOptions::default().with_try_parse_dates(true))
@@ -67,7 +67,7 @@ pub fn plot(path: &str) -> SolverResult<()> {
         .add(&time_curve4)
         .legend();
 
-    constrainedlayout("Images/parallel_heis", &mut plot, true)
+    constrainedlayout(&format!("Images/{name}"), &mut plot, true)
 }
 
 fn get_column(df: &DataFrame, name: &str) -> Vec<f64> {

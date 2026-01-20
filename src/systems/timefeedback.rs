@@ -92,7 +92,7 @@ where
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized, const D: usize> StochasticSystem<State<na::Const<D>>>
+impl<'a, R: wiener::Rng + ?Sized, const D: usize> StochasticSystem<'a, R, State<na::Const<D>>>
     for Controller<'a, R, D>
 where
     na::Const<D>: na::DimSub<na::Const<1>> + na::Dim + na::DimName + Sized + std::marker::Copy,
@@ -200,5 +200,8 @@ where
 
     fn measurement(&self, x: &State<na::Const<D>>, dt: f64, dw: f64) -> f64 {
         ((self.l + self.l.adjoint()) * x).trace().re * dt + dw
+    }
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

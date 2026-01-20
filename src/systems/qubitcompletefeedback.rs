@@ -65,7 +65,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState> for QubitFeedback<'a, R> {
     fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         let miny = self.y1.min(self.y2);
         let maxy = self.y1.max(self.y2);
@@ -103,6 +103,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }
 
@@ -171,7 +174,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback2<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback2<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState> for QubitFeedback2<'a, R> {
     fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         let miny = self.y1.min(self.y2);
         let maxy = self.y1.max(self.y2);
@@ -215,5 +218,8 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

@@ -51,7 +51,7 @@ impl<'a, R: wiener::Rng + ?Sized> QubitFeedback<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState> for QubitFeedback<'a, R> {
     fn system(&mut self, t: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         let y = ((self.l + self.l.adjoint()) * rho).trace().re;
 
@@ -83,5 +83,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitFeedback
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

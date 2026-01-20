@@ -27,20 +27,8 @@ impl<'a, R: wiener::Rng + ?Sized> QubitWisemanSSE<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanSSE<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState> for QubitWisemanSSE<'a, R> {
     fn system(&mut self, _: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
-        // let id = QubitOperator::identity();
-        // let fst =
-        //     (self.hhat * na::Complex::I + self.lhat.adjoint() * self.lhat.scale(0.5)).scale(dt);
-        // let snd = self
-        //     .lhat
-        //     .scale((self.lhat * x + x * self.lhat.adjoint()).trace().re * dt + dw[0]);
-        // let thd = (self.lhat * self.lhat).scale(dw[0].powi(2) - dt).scale(0.5);
-        //
-        // let m = id - fst + snd + thd;
-        //
-        // let num = m * x * m.adjoint();
-        // *dx = num.scale(1. / num.trace().re) - x;
         *drho = rouchonstep(dt, &rho, &self.hhat, &self.lhat, dw[0]);
     }
 
@@ -50,5 +38,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitWisemanS
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

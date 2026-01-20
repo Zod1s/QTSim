@@ -1,9 +1,10 @@
 use crate::utils::*;
-use crate::wiener::Wiener;
+use crate::wiener::{self, Wiener};
 use itertools::Itertools;
 use nalgebra as na;
 use rand::rngs::ThreadRng;
 use rand_distr::num_traits::ToPrimitive;
+use std::marker::PhantomData;
 
 pub trait System<V> {
     fn system(&self, t: f64, x: &V, dx: &mut V);
@@ -166,12 +167,13 @@ where
     }
 }
 
-pub trait StochasticSystem<V> {
+pub trait StochasticSystem<'a, R: wiener::Rng + ?Sized, V> {
     // need to have a mutable reference to update the total output signal y
     fn system(&mut self, t: f64, dt: f64, x: &V, dx: &mut V, dw: &Vec<f64>);
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>);
     // handles only single measurement for now
     fn measurement(&self, x: &V, dt: f64, dw: f64) -> f64;
+    fn setrng(&mut self, rng: &'a mut R);
 }
 
 #[derive(Debug, Clone)]
@@ -213,9 +215,10 @@ impl<V> Default for StochasticSolverOutput<V> {
         Self(Default::default(), Default::default(), Default::default())
     }
 }
-pub struct StochasticSolver<'a, V, F>
+pub struct StochasticSolver<'a, R, V, F>
 where
-    F: StochasticSystem<V>,
+    R: wiener::Rng + ?Sized,
+    F: StochasticSystem<'a, R, V>,
 {
     f: &'a mut F,
     t0: f64,
@@ -224,11 +227,12 @@ where
     step_size: f64,
     num_steps: usize,
     results: StochasticSolverOutput<V>,
+    phantom: PhantomData<R>,
 }
 
-impl<'a, D: na::Dim, F> StochasticSolver<'a, State<D>, F>
+impl<'a, R: wiener::Rng + ?Sized, D: na::Dim, F> StochasticSolver<'a, R, State<D>, F>
 where
-    F: StochasticSystem<State<D>>,
+    F: StochasticSystem<'a, R, State<D>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     pub fn new(f: &'a mut F, t0: f64, x0: State<D>, t_end: f64, step_size: f64) -> Self {
@@ -242,6 +246,7 @@ where
             step_size,
             num_steps,
             results: StochasticSolverOutput::with_capacity(num_steps),
+            phantom: PhantomData,
         }
     }
 

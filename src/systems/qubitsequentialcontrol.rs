@@ -25,7 +25,9 @@ impl<'a, R: wiener::Rng + ?Sized> QubitSequentialControl<'a, R> {
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequentialControl<'a, R> {
+impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<'a, R, QubitState>
+    for QubitSequentialControl<'a, R>
+{
     fn system(&mut self, _: f64, dt: f64, rho: &QubitState, drho: &mut QubitState, dw: &Vec<f64>) {
         // let id = QubitOperator::identity();
         // let fst = (self.h * na::Complex::I + self.l.adjoint() * self.l.scale(0.5)).scale(dt);
@@ -60,5 +62,9 @@ impl<'a, R: wiener::Rng + ?Sized> StochasticSystem<QubitState> for QubitSequenti
 
     fn measurement(&self, x: &QubitState, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

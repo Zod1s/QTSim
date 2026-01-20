@@ -9,13 +9,10 @@ use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
 use std::fs::File;
-// use std::sync::{Arc, Mutex};
 
 const NUMTHREADS: usize = 7;
 
-pub fn parallel_3d() -> SolverResult<()> {
-    let mut plot = plotpy::Plot::new();
-
+pub fn parallel_3d() {
     let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
     let hc = na::Matrix3::zeros();
     let f0 = na::matrix![0., 1., 1.; 1., 0., 1.; 1., 1., 0.].cast();
@@ -235,60 +232,9 @@ pub fn parallel_3d() -> SolverResult<()> {
         .include_header(true)
         .with_separator(b',')
         .finish(&mut df);
-
-    let mut free_curve = plotpy::Curve::new();
-    free_curve
-        .set_label("Free evolution")
-        .draw(&t_out, &avg_free_fidelity);
-
-    let mut ideal_curve = plotpy::Curve::new();
-    ideal_curve
-        .set_label("Ideal evolution")
-        .draw(&t_out, &avg_ideal_fidelity);
-
-    let mut ctrl_curve = plotpy::Curve::new();
-    ctrl_curve
-        .set_label("Controlled evolution")
-        .draw(&t_out, &avg_ctrl_fidelity);
-
-    let mut time_curve1 = plotpy::Curve::new();
-    time_curve1
-        .set_label(&format!("Windowed evolution, k = {}", k1))
-        .draw(&t_out, &avg_time_fidelity1);
-
-    let mut time_curve2 = plotpy::Curve::new();
-    time_curve2
-        .set_label(&format!("Windowed evolution, k = {}", k2))
-        .draw(&t_out, &avg_time_fidelity2);
-
-    let mut time_curve3 = plotpy::Curve::new();
-    time_curve3
-        .set_label(&format!("Windowed evolution, k = {}", k3))
-        .draw(&t_out, &avg_time_fidelity3);
-
-    let mut time_curve4 = plotpy::Curve::new();
-    time_curve4
-        .set_label(&format!("Windowed evolution, k = {}", k4))
-        .draw(&t_out, &avg_time_fidelity4);
-
-    plot.add(&free_curve)
-        .add(&ideal_curve)
-        .add(&ctrl_curve)
-        .add(&time_curve1)
-        .add(&time_curve2)
-        .add(&time_curve3)
-        .add(&time_curve4)
-        .legend();
-
-    println!("Plotting");
-    constrainedlayout("Images/parallel_3d", &mut plot, true)?;
-
-    Ok(())
 }
 
-pub fn parallel_heis() -> SolverResult<()> {
-    let mut plot = plotpy::Plot::new();
-
+pub fn parallel_heis() {
     let h = ferromagnetictriangle(&vec![0.5, 0.5, 3.0]);
     let l = h.clone();
     let hc = crate::utils::Operator::<na::U8>::zeros();
@@ -519,60 +465,9 @@ pub fn parallel_heis() -> SolverResult<()> {
         .include_header(true)
         .with_separator(b',')
         .finish(&mut df);
-
-    let mut free_curve = plotpy::Curve::new();
-    free_curve
-        .set_label("Free evolution")
-        .draw(&t_out, &avg_free_fidelity);
-
-    let mut ideal_curve = plotpy::Curve::new();
-    ideal_curve
-        .set_label("Ideal evolution")
-        .draw(&t_out, &avg_ideal_fidelity);
-
-    let mut ctrl_curve = plotpy::Curve::new();
-    ctrl_curve
-        .set_label("Controlled evolution")
-        .draw(&t_out, &avg_ctrl_fidelity);
-
-    let mut time_curve1 = plotpy::Curve::new();
-    time_curve1
-        .set_label(&format!("Windowed evolution, k = {}", k1))
-        .draw(&t_out, &avg_time_fidelity1);
-
-    let mut time_curve2 = plotpy::Curve::new();
-    time_curve2
-        .set_label(&format!("Windowed evolution, k = {}", k2))
-        .draw(&t_out, &avg_time_fidelity2);
-
-    let mut time_curve3 = plotpy::Curve::new();
-    time_curve3
-        .set_label(&format!("Windowed evolution, k = {}", k3))
-        .draw(&t_out, &avg_time_fidelity3);
-
-    let mut time_curve4 = plotpy::Curve::new();
-    time_curve4
-        .set_label(&format!("Windowed evolution, k = {}", k4))
-        .draw(&t_out, &avg_time_fidelity4);
-
-    plot.add(&free_curve)
-        .add(&ideal_curve)
-        .add(&ctrl_curve)
-        .add(&time_curve1)
-        .add(&time_curve2)
-        .add(&time_curve3)
-        .add(&time_curve4)
-        .legend();
-
-    println!("Plotting");
-    constrainedlayout("Images/parallel_heis", &mut plot, true)?;
-
-    Ok(())
 }
 
-pub fn parallel_anti_heis() -> SolverResult<()> {
-    let mut plot = plotpy::Plot::new();
-
+pub fn parallel_anti_heis() {
     let h = -ferromagnetictriangle(&vec![1.0, 1.0, 2.0]);
     let l = h.clone();
     let hc = crate::utils::Operator::<na::U8>::zeros();
@@ -604,7 +499,8 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
 
     let num_tries = 1000;
     let num_inner_tries = 20;
-    let final_time: f64 = 30.0;
+    // let final_time: f64 = 30.0;
+    let final_time: f64 = 15.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -631,6 +527,8 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
     //         .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
     //         .unwrap(),
     // );
+
+    // let mut pairs: Vec<Option<(, Vec<f64>)>> = vec![Some((systems::sse::SSE::new, avg_free_fidelity))];
 
     rayon::scope(|s| {
         s.spawn(|s| {
@@ -811,53 +709,4 @@ pub fn parallel_anti_heis() -> SolverResult<()> {
         .include_header(true)
         .with_separator(b',')
         .finish(&mut df);
-
-    let mut free_curve = plotpy::Curve::new();
-    free_curve
-        .set_label("Free evolution")
-        .draw(&t_out, &avg_free_fidelity);
-
-    let mut ideal_curve = plotpy::Curve::new();
-    ideal_curve
-        .set_label("Ideal evolution")
-        .draw(&t_out, &avg_ideal_fidelity);
-
-    let mut ctrl_curve = plotpy::Curve::new();
-    ctrl_curve
-        .set_label("Controlled evolution")
-        .draw(&t_out, &avg_ctrl_fidelity);
-
-    let mut time_curve1 = plotpy::Curve::new();
-    time_curve1
-        .set_label(&format!("Windowed evolution, k = {}", k1))
-        .draw(&t_out, &avg_time_fidelity1);
-
-    let mut time_curve2 = plotpy::Curve::new();
-    time_curve2
-        .set_label(&format!("Windowed evolution, k = {}", k2))
-        .draw(&t_out, &avg_time_fidelity2);
-
-    let mut time_curve3 = plotpy::Curve::new();
-    time_curve3
-        .set_label(&format!("Windowed evolution, k = {}", k3))
-        .draw(&t_out, &avg_time_fidelity3);
-
-    let mut time_curve4 = plotpy::Curve::new();
-    time_curve4
-        .set_label(&format!("Windowed evolution, k = {}", k4))
-        .draw(&t_out, &avg_time_fidelity4);
-
-    plot.add(&free_curve)
-        .add(&ideal_curve)
-        .add(&ctrl_curve)
-        .add(&time_curve1)
-        .add(&time_curve2)
-        .add(&time_curve3)
-        .add(&time_curve4)
-        .legend();
-
-    println!("Plotting");
-    constrainedlayout("Images/parallel_anti_heis", &mut plot, true)?;
-
-    Ok(())
 }

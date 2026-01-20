@@ -2,8 +2,8 @@
 
 mod dataplots;
 mod examples;
-mod kron;
-mod lyapunov;
+// mod kron;
+// mod lyapunov;
 mod plots;
 mod solver;
 mod systems;
@@ -22,12 +22,12 @@ const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 // window to reduce the variance under a certain threshold
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
-        .build_global()
-        .expect("Could not create threadpool");
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+    //     .build_global()
+    //     .expect("Could not create threadpool");
 
-    examples::parallel::parallel_anti_heis()?;
+    // examples::parallel::parallel_anti_heis()?;
 
     // let thread1 = thread::spawn(|| {
     //     examples::parallel::parallel_3d();
@@ -46,7 +46,7 @@ fn main() -> utils::SolverResult<()> {
     //     });
     // });
 
-    // dataplots::plot("./heis.csv")
+    dataplots::plot("./heis.csv", "parallel_heis")
 
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
     // let s1 = PAULIS
@@ -102,5 +102,5 @@ fn main() -> utils::SolverResult<()> {
     // println!("Sum of eigenvalues: {:.4}", eigen.eigenvalues.sum());
     // println!("Eigenvectors: {:.4}", eigen.eigenvectors.map(|v| v.re));
     //
-    Ok(())
+    // Ok(())
 }

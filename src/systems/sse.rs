@@ -35,7 +35,7 @@ where
     }
 }
 
-impl<'a, R, D> StochasticSystem<State<D>> for SSE<'a, R, D>
+impl<'a, R, D> StochasticSystem<'a, R, State<D>> for SSE<'a, R, D>
 where
     R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
@@ -54,5 +54,9 @@ where
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    }
+
+    fn setrng(&mut self, rng: &'a mut R) {
+        self.rng = rng;
     }
 }

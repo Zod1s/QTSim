@@ -1,0 +1,2 @@
+   Compiling QTSim v0.1.0 (/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim)
+    Finished `release` profile [optimized] target(s) in 9.82s
