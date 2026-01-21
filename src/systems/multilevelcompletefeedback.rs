@@ -1,15 +1,13 @@
 use crate::solver::StochasticSystem;
 use crate::utils::*;
 use crate::wiener;
+use rand::{rngs::StdRng, SeedableRng};
 use statrs::distribution::{ContinuousCDF, Normal};
 
 #[derive(Debug)]
 /// New feedback with both F0 and F1 for multilevel systems, using the actual yt
-pub struct Feedback<
-    'a,
-    R: wiener::Rng + ?Sized,
-    D: na::Dim + na::DimName + Sized + std::marker::Copy,
-> where
+pub struct Feedback<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
@@ -25,12 +23,11 @@ pub struct Feedback<
     ub: f64,
     tf: f64,
     lastset: LastSet,
-    rng: &'a mut R,
+    rng: StdRng,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    Feedback<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> Feedback<D>
 where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
@@ -47,7 +44,7 @@ where
         gamma: f64,
         alpha: f64,
         epsilon: f64,
-        rng: &'a mut R,
+        rng: Option<u64>,
     ) -> Self {
         let normal = Normal::standard();
         let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
@@ -62,7 +59,7 @@ where
             lhat,
             y: 0.,
             y1,
-            rng,
+            rng: StdRng::seed_from_u64(rng.unwrap_or(0)),
             tf,
             lastset: LastSet::NotSet,
             ub: 2. * delta - gamma + y1,
@@ -72,8 +69,8 @@ where
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    StochasticSystem<State<D>> for Feedback<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> StochasticSystem<State<D>>
+    for Feedback<D>
 where
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -108,7 +105,7 @@ where
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
-        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+        *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
@@ -118,11 +115,8 @@ where
 
 #[derive(Debug)]
 /// New feedback with both F0 and F1 for multilevel systems, using the actual yt
-pub struct Feedback2<
-    'a,
-    R: wiener::Rng + ?Sized,
-    D: na::Dim + na::DimName + Sized + std::marker::Copy,
-> where
+pub struct Feedback2<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
@@ -141,12 +135,11 @@ pub struct Feedback2<
     lastdys: Vec<f64>,
     count: usize,
     lastset: LastSet,
-    rng: &'a mut R,
+    rng: StdRng,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    Feedback2<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> Feedback2<D>
 where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
@@ -164,7 +157,7 @@ where
         gamma: f64,
         alpha: f64,
         epsilon: f64,
-        rng: &'a mut R,
+        rng: Option<u64>,
     ) -> Self {
         let normal = Normal::standard();
         let tf = (normal.cdf((alpha + 1.) / 2.) / epsilon).powi(2);
@@ -179,7 +172,7 @@ where
             lhat,
             y: 0.,
             y1,
-            rng,
+            rng: StdRng::seed_from_u64(rng.unwrap_or(0)),
             tf,
             lastdy: 0,
             lastdys: vec![0.; k],
@@ -192,8 +185,8 @@ where
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    StochasticSystem<State<D>> for Feedback2<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> StochasticSystem<State<D>>
+    for Feedback2<D>
 where
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -237,7 +230,7 @@ where
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
-        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+        *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {

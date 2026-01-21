@@ -566,3 +566,16 @@ where
         .map(|rho| fidelity_to_projector(rho, &projector))
         .collect::<Vec<f64>>()
 }
+
+#[inline(always)]
+pub fn compute_prob<D>(states: &[State<D>], projector: &State<D>) -> Vec<f64>
+where
+    D: na::Dim,
+    na::DefaultAllocator: na::allocator::Allocator<D>,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    states
+        .iter()
+        .map(|rho| (rho * projector).trace().re)
+        .collect()
+}

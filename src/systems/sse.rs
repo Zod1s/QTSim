@@ -1,11 +1,12 @@
 use crate::solver::{StochasticSystem, System};
 use crate::utils::*;
 use crate::wiener;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 
 #[derive(Debug)]
-pub struct SSE<'a, R, D>
+pub struct SSE<D>
 where
-    R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
@@ -13,31 +14,29 @@ where
 {
     h: Operator<D>,
     l: Operator<D>,
-    rng: &'a mut R,
+    rng: StdRng,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R, D> SSE<'a, R, D>
+impl<D> SSE<D>
 where
-    R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
 {
-    pub fn new(h: Operator<D>, l: Operator<D>, rng: &'a mut R) -> Self {
+    pub fn new(h: Operator<D>, l: Operator<D>, seed: Option<u64>) -> Self {
         Self {
             h,
             l,
-            rng,
+            rng: StdRng::seed_from_u64(seed.unwrap_or(0)),
             wiener: wiener::Wiener::new(),
         }
     }
 }
 
-impl<'a, R, D> StochasticSystem<State<D>> for SSE<'a, R, D>
+impl<D> StochasticSystem<State<D>> for SSE<D>
 where
-    R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -49,7 +48,7 @@ where
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
-        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+        *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
