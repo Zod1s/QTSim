@@ -1,11 +1,12 @@
 use crate::solver::{StochasticSystem, System};
 use crate::utils::*;
 use crate::wiener;
+use rand::rngs::StdRng;
 
 #[derive(Debug)]
-pub struct SSE<'a, R, D>
+pub struct SSE<D>
 where
-    R: wiener::Rng + ?Sized,
+    // R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
@@ -13,31 +14,28 @@ where
 {
     h: Operator<D>,
     l: Operator<D>,
-    rng: &'a mut R,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R, D> SSE<'a, R, D>
+impl<D> SSE<D>
 where
-    R: wiener::Rng + ?Sized,
+    // R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
 {
-    pub fn new(h: Operator<D>, l: Operator<D>, rng: &'a mut R) -> Self {
+    pub fn new(h: Operator<D>, l: Operator<D>) -> Self {
         Self {
             h,
             l,
-            rng,
             wiener: wiener::Wiener::new(),
         }
     }
 }
 
-impl<'a, R, D> StochasticSystem<'a, R, State<D>> for SSE<'a, R, D>
+impl<D> StochasticSystem<State<D>> for SSE<D>
 where
-    R: wiener::Rng + ?Sized,
     D: na::Dim + na::DimName + Sized + std::marker::Copy,
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -48,15 +46,11 @@ where
         *drho = rouchonstep(dt, &rho, &self.h, &self.l, dw[0]);
     }
 
-    fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
-        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+    fn generate_noises(&self, dt: f64, dw: &mut Vec<f64>, rng: &mut StdRng) {
+        *dw = self.wiener.sample_vector(dt, 1, rng);
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
-    }
-
-    fn setrng(&mut self, rng: &'a mut R) {
-        self.rng = rng;
     }
 }

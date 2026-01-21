@@ -1,14 +1,12 @@
 use crate::solver::StochasticSystem;
 use crate::utils::*;
 use crate::wiener;
+use rand::rngs::StdRng;
 
 #[derive(Debug)]
 /// New feedback with both F0 and F1 for multilevel systems, using the ideal yt
-pub struct Feedback<
-    'a,
-    R: wiener::Rng + ?Sized,
-    D: na::Dim + na::DimName + Sized + std::marker::Copy,
-> where
+pub struct Feedback<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
@@ -22,12 +20,10 @@ pub struct Feedback<
     lb: f64,
     ub: f64,
     lastset: LastSet,
-    rng: &'a mut R,
     wiener: wiener::Wiener,
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    Feedback<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> Feedback<D>
 where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
@@ -42,7 +38,6 @@ where
         y1: f64,
         delta: f64,
         gamma: f64,
-        rng: &'a mut R,
     ) -> Self {
         let hhat = h + hc + (f1 * l + l.adjoint() * f1).scale(0.5);
         let lhat = l - f1 * na::Complex::I;
@@ -54,7 +49,6 @@ where
             hhat,
             lhat,
             y1,
-            rng,
             lastset: LastSet::NotSet,
             ub: 2. * delta - gamma + y1,
             lb: 2. * delta - 2. * gamma + y1,
@@ -63,8 +57,8 @@ where
     }
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim + na::DimName + Sized + std::marker::Copy>
-    StochasticSystem<'a, R, State<D>> for Feedback<'a, R, D>
+impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> StochasticSystem<State<D>>
+    for Feedback<D>
 where
     D: na::DimSub<na::Const<1>>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -96,14 +90,11 @@ where
         *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
     }
 
-    fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {
-        *dw = self.wiener.sample_vector(dt, 1, self.rng);
+    fn generate_noises(&self, dt: f64, dw: &mut Vec<f64>, rng: &mut StdRng) {
+        *dw = self.wiener.sample_vector(dt, 1, rng);
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
         (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
-    }
-    fn setrng(&mut self, rng: &'a mut R) {
-        self.rng = rng;
     }
 }

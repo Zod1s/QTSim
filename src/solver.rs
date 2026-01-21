@@ -2,9 +2,8 @@ use crate::utils::*;
 use crate::wiener::{self, Wiener};
 use itertools::Itertools;
 use nalgebra as na;
-use rand::rngs::ThreadRng;
+use rand::rngs::{StdRng, ThreadRng};
 use rand_distr::num_traits::ToPrimitive;
-use std::marker::PhantomData;
 
 pub trait System<V> {
     fn system(&self, t: f64, x: &V, dx: &mut V);
@@ -167,13 +166,13 @@ where
     }
 }
 
-pub trait StochasticSystem<'a, R: wiener::Rng + ?Sized, V> {
+pub trait StochasticSystem<V>: Send {
     // need to have a mutable reference to update the total output signal y
     fn system(&mut self, t: f64, dt: f64, x: &V, dx: &mut V, dw: &Vec<f64>);
-    fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>);
+    // fn generate_noises<R: wiener::Rng + ?Sized>(&self, dt: f64, dw: &mut Vec<f64>, rng: &mut R);
+    fn generate_noises(&self, dt: f64, dw: &mut Vec<f64>, rng: &mut StdRng);
     // handles only single measurement for now
     fn measurement(&self, x: &V, dt: f64, dw: f64) -> f64;
-    fn setrng(&mut self, rng: &'a mut R);
 }
 
 #[derive(Debug, Clone)]
@@ -215,10 +214,10 @@ impl<V> Default for StochasticSolverOutput<V> {
         Self(Default::default(), Default::default(), Default::default())
     }
 }
-pub struct StochasticSolver<'a, R, V, F>
+
+pub struct StochasticSolver<'a, V, F>
 where
-    R: wiener::Rng + ?Sized,
-    F: StochasticSystem<'a, R, V>,
+    F: StochasticSystem<V> + ?Sized,
 {
     f: &'a mut F,
     t0: f64,
@@ -227,12 +226,11 @@ where
     step_size: f64,
     num_steps: usize,
     results: StochasticSolverOutput<V>,
-    phantom: PhantomData<R>,
 }
 
-impl<'a, R: wiener::Rng + ?Sized, D: na::Dim, F> StochasticSolver<'a, R, State<D>, F>
+impl<'a, D: na::Dim, F> StochasticSolver<'a, State<D>, F>
 where
-    F: StochasticSystem<'a, R, State<D>>,
+    F: StochasticSystem<State<D>> + ?Sized,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     pub fn new(f: &'a mut F, t0: f64, x0: State<D>, t_end: f64, step_size: f64) -> Self {
@@ -246,14 +244,13 @@ where
             step_size,
             num_steps,
             results: StochasticSolverOutput::with_capacity(num_steps),
-            phantom: PhantomData,
         }
     }
 
-    pub fn integrate(&mut self) {
+    pub fn integrate<'b: 'a>(&mut self, rng: &'b mut StdRng) {
         // TODO modify to handle multiple outputs
         let mut dw = Vec::new();
-        self.f.generate_noises(self.step_size, &mut dw);
+        self.f.generate_noises(self.step_size, &mut dw, rng);
         let mut dy = self.f.measurement(&self.x0, self.step_size, dw[0]);
 
         self.results.push(self.t0, self.x0.clone(), dy);
@@ -267,32 +264,32 @@ where
             self.f.system(t, self.step_size, &x, &mut dx, &dw);
             t += self.step_size;
             x += &dx;
-            self.f.generate_noises(self.step_size, &mut dw);
+            self.f.generate_noises(self.step_size, &mut dw, rng);
             dy = self.f.measurement(&x, self.step_size, dw[0]);
 
             self.results.push(t, x.clone(), dy);
         }
     }
 
-    pub fn step(&mut self, t: f64, x: &State<D>) -> (f64, State<D>) {
-        // TODO modify to handle multiple outputs
-        let mut dw = Vec::new();
-        self.f.generate_noises(self.step_size, &mut dw);
-        let mut dy = self.f.measurement(x, self.step_size, dw[0]);
-
-        self.results.push(t, x.clone(), dy);
-
-        let shape = x.shape_generic();
-        let mut dx = na::OMatrix::zeros_generic(shape.0, shape.1);
-
-        self.f.system(t, self.step_size, &x, &mut dx, &dw);
-        let t = t + self.step_size;
-        let x = x + dx;
-        self.f.generate_noises(self.step_size, &mut dw);
-        dy = self.f.measurement(&x, self.step_size, dw[0]);
-
-        (t, x.clone())
-    }
+    // pub fn step(&mut self, t: f64, x: &State<D>) -> (f64, State<D>) {
+    //     // TODO modify to handle multiple outputs
+    //     let mut dw = Vec::new();
+    //     self.f.generate_noises(self.step_size, &mut dw);
+    //     let mut dy = self.f.measurement(x, self.step_size, dw[0]);
+    //
+    //     self.results.push(t, x.clone(), dy);
+    //
+    //     let shape = x.shape_generic();
+    //     let mut dx = na::OMatrix::zeros_generic(shape.0, shape.1);
+    //
+    //     self.f.system(t, self.step_size, &x, &mut dx, &dw);
+    //     let t = t + self.step_size;
+    //     let x = x + dx;
+    //     self.f.generate_noises(self.step_size, &mut dw);
+    //     dy = self.f.measurement(&x, self.step_size, dw[0]);
+    //
+    //     (t, x.clone())
+    // }
 
     /// Getter for the independent variable's output.
     pub fn t_out(&self) -> &Vec<f64> {

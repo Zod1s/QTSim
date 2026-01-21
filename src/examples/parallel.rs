@@ -1,5 +1,5 @@
 use crate::plots::constrainedlayout;
-use crate::solver::{Rk4, StochasticSolver};
+use crate::solver::{Rk4, StochasticSolver, StochasticSystem};
 use crate::systems;
 use crate::utils::*;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
@@ -9,9 +9,11 @@ use rand::SeedableRng;
 use rand_distr::num_traits::ToPrimitive;
 use rayon::prelude::*;
 use std::fs::File;
+use std::sync::{Arc, Mutex};
 
 const NUMTHREADS: usize = 7;
 
+/*
 pub fn parallel_3d() {
     let h = na::Matrix3::from_diagonal(&na::Vector3::new(-1.0, 2.0, 3.0)).cast();
     let hc = na::Matrix3::zeros();
@@ -466,6 +468,7 @@ pub fn parallel_heis() {
         .with_separator(b',')
         .finish(&mut df);
 }
+*/
 
 pub fn parallel_anti_heis() {
     let h = -ferromagnetictriangle(&vec![1.0, 1.0, 2.0]);
@@ -522,169 +525,229 @@ pub fn parallel_anti_heis() {
     let k3 = 50000;
     let k4 = 100000;
 
-    // let bar = ProgressBar::new(7 * num_tries).with_style(
-    //     ProgressStyle::default_bar()
-    //         .template("Simulating: [{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-    //         .unwrap(),
-    // );
+    let mut rng1 = StdRng::seed_from_u64(0);
+    let mut rng2 = StdRng::seed_from_u64(0);
+    let mut rng3 = StdRng::seed_from_u64(0);
+    let mut rng4 = StdRng::seed_from_u64(0);
+    let mut rng5 = StdRng::seed_from_u64(0);
+    let mut rng6 = StdRng::seed_from_u64(0);
+    let mut rng7 = StdRng::seed_from_u64(0);
 
-    // let mut pairs: Vec<Option<(, Vec<f64>)>> = vec![Some((systems::sse::SSE::new, avg_free_fidelity))];
+    let sys1 = systems::sse::SSE::new(h, l);
+    let sys2 = systems::multilevelcompletefeedback::Feedback::new(
+        h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon,
+    );
+    let sys3 =
+        systems::idealmultilevelcompletefeedback::Feedback::new(h, l, hc, f0, f1, y1, delta, gamma);
+    let sys4 = systems::multilevelcompletefeedback::Feedback2::new(
+        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon,
+    );
+    let sys5 = systems::multilevelcompletefeedback::Feedback2::new(
+        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon,
+    );
+    let sys6 = systems::multilevelcompletefeedback::Feedback2::new(
+        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon,
+    );
+    let sys7 = systems::multilevelcompletefeedback::Feedback2::new(
+        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon,
+    );
+
+    let mut pairs: Vec<Option<(Arc<Mutex<dyn StochasticSystem<State<na::U8>>>>, Vec<f64>)>> = vec![
+        Some((Arc::new(Mutex::new(sys1)), avg_free_fidelity.clone())),
+        Some((Arc::new(Mutex::new(sys2)), avg_ctrl_fidelity.clone())),
+        Some((Arc::new(Mutex::new(sys3)), avg_ideal_fidelity.clone())),
+        Some((Arc::new(Mutex::new(sys4)), avg_time_fidelity1.clone())),
+        Some((Arc::new(Mutex::new(sys5)), avg_time_fidelity2.clone())),
+        Some((Arc::new(Mutex::new(sys6)), avg_time_fidelity3.clone())),
+        Some((Arc::new(Mutex::new(sys7)), avg_time_fidelity4.clone())),
+    ];
+
+    let mut references = vec![
+        Some(&mut avg_free_fidelity),
+        Some(&mut avg_ideal_fidelity),
+        Some(&mut avg_ctrl_fidelity),
+        Some(&mut avg_time_fidelity1),
+        Some(&mut avg_time_fidelity2),
+        Some(&mut avg_time_fidelity3),
+        Some(&mut avg_time_fidelity4),
+    ];
 
     rayon::scope(|s| {
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
+        for l in 0..7 {
+            let (mut system, mut avgv) = pairs[l].take().unwrap();
+            let mut reference = references[l].take().unwrap();
+            s.spawn(|s| {
+                let system = system
+                    .get_mut()
+                    .expect(&format!("Could not take system {}", l));
 
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::sse::SSE::new(h, l, &mut rng);
+                for i in 0..num_tries {
+                    let x0 = state_gen(Some(i));
 
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
+                    for j in 0..num_inner_tries {
+                        let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
 
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
+                        let mut solver = StochasticSolver::new(system, 0.0, x0, final_time, dt);
+                        solver.integrate(&mut rng);
 
-                    avg_free_fidelity = sum_arrays(&avg_free_fidelity, &obsv);
+                        let rho_out = solver.state_out();
+                        let obsv = compute_fidelity(rho_out, &rhod);
+
+                        avgv = sum_arrays(&avgv, &obsv);
+                    }
                 }
-                // bar.inc(1);
-            }
-            avg_free_fidelity = time_average(&avg_free_fidelity, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback::new(
-                        h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_ctrl_fidelity = sum_arrays(&avg_ctrl_fidelity, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_ctrl_fidelity = time_average(&avg_ctrl_fidelity, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::idealmultilevelcompletefeedback::Feedback::new(
-                        h, l, hc, f0, f1, y1, delta, gamma, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_ideal_fidelity = sum_arrays(&avg_ideal_fidelity, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_ideal_fidelity = time_average(&avg_ideal_fidelity, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_time_fidelity1 = sum_arrays(&avg_time_fidelity1, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity1 = time_average(&avg_time_fidelity1, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h, l, hc, f0, f1, y1, k2, delta, gamma, beta, epsilon, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_time_fidelity2 = sum_arrays(&avg_time_fidelity2, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity2 = time_average(&avg_time_fidelity2, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h, l, hc, f0, f1, y1, k3, delta, gamma, beta, epsilon, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_time_fidelity3 = sum_arrays(&avg_time_fidelity3, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity3 = time_average(&avg_time_fidelity3, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h, l, hc, f0, f1, y1, k4, delta, gamma, beta, epsilon, &mut rng,
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_fidelity(rho_out, &rhod);
-
-                    avg_time_fidelity4 = sum_arrays(&avg_time_fidelity4, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity4 = time_average(&avg_time_fidelity4, num_tries * num_inner_tries);
-        });
+                *reference = time_average(&avgv, num_tries * num_inner_tries);
+            })
+        }
     });
-    // bar.finish();
+
+    // rayon::scope(|s| {
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::sse::SSE::new(h, l, &mut rng);
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_free_fidelity = sum_arrays(&avg_free_fidelity, &obsv);
+    //             }
+    //         }
+    //         avg_free_fidelity = time_average(&avg_free_fidelity, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::multilevelcompletefeedback::Feedback::new(
+    //                     h, l, hc, f0, f1, y1, delta, gamma, beta, epsilon, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_ctrl_fidelity = sum_arrays(&avg_ctrl_fidelity, &obsv);
+    //             }
+    //         }
+    //         avg_ctrl_fidelity = time_average(&avg_ctrl_fidelity, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::idealmultilevelcompletefeedback::Feedback::new(
+    //                     h, l, hc, f0, f1, y1, delta, gamma, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_ideal_fidelity = sum_arrays(&avg_ideal_fidelity, &obsv);
+    //             }
+    //         }
+    //         avg_ideal_fidelity = time_average(&avg_ideal_fidelity, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+    //                     h, l, hc, f0, f1, y1, k1, delta, gamma, beta, epsilon, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_time_fidelity1 = sum_arrays(&avg_time_fidelity1, &obsv);
+    //             }
+    //         }
+    //         avg_time_fidelity1 = time_average(&avg_time_fidelity1, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+    //                     h, l, hc, f0, f1, y1, k2, delta, gamma, beta, epsilon, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_time_fidelity2 = sum_arrays(&avg_time_fidelity2, &obsv);
+    //             }
+    //         }
+    //         avg_time_fidelity2 = time_average(&avg_time_fidelity2, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+    //                     h, l, hc, f0, f1, y1, k3, delta, gamma, beta, epsilon, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_time_fidelity3 = sum_arrays(&avg_time_fidelity3, &obsv);
+    //             }
+    //         }
+    //         avg_time_fidelity3 = time_average(&avg_time_fidelity3, num_tries * num_inner_tries);
+    //     });
+    //     s.spawn(|s| {
+    //         for i in 0..num_tries {
+    //             let x0 = state_gen(Some(i));
+    //
+    //             for j in 0..num_inner_tries {
+    //                 let mut rng = StdRng::seed_from_u64(num_inner_tries * i + j);
+    //                 let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+    //                     h, l, hc, f0, f1, y1, k4, delta, gamma, beta, epsilon, &mut rng,
+    //                 );
+    //
+    //                 let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+    //                 solver.integrate();
+    //
+    //                 let rho_out = solver.state_out();
+    //                 let obsv = compute_fidelity(rho_out, &rhod);
+    //
+    //                 avg_time_fidelity4 = sum_arrays(&avg_time_fidelity4, &obsv);
+    //             }
+    //         }
+    //         avg_time_fidelity4 = time_average(&avg_time_fidelity4, num_tries * num_inner_tries);
+    //     });
+    // });
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)

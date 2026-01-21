@@ -1,2 +1,251 @@
    Compiling QTSim v0.1.0 (/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim)
-    Finished `release` profile [optimized] target(s) in 9.82s
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/idealmultilevelcompletefeedback.rs:61:9
+    |
+ 61 |     for Feedback<D>
+    |         ^^^^^^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `idealmultilevelcompletefeedback::Feedback<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `idealmultilevelcompletefeedback::Feedback<D>`
+   --> src/systems/idealmultilevelcompletefeedback.rs:8:12
+    |
+  8 | pub struct Feedback<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+    |            ^^^^^^^^
+note: required by a bound in `StochasticSystem`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem`
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/multilevelcompletefeedback.rs:70:9
+    |
+ 70 |     for Feedback<D>
+    |         ^^^^^^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `multilevelcompletefeedback::Feedback<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `multilevelcompletefeedback::Feedback<D>`
+   --> src/systems/multilevelcompletefeedback.rs:9:12
+    |
+  9 | pub struct Feedback<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+    |            ^^^^^^^^
+note: required by a bound in `StochasticSystem`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem`
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/multilevelcompletefeedback.rs:183:9
+    |
+183 |     for Feedback2<D>
+    |         ^^^^^^^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `Feedback2<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `Feedback2<D>`
+   --> src/systems/multilevelcompletefeedback.rs:115:12
+    |
+115 | pub struct Feedback2<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+    |            ^^^^^^^^^
+note: required by a bound in `StochasticSystem`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem`
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/sse.rs:37:40
+    |
+ 37 | impl<D> StochasticSystem<State<D>> for SSE<D>
+    |                                        ^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `SSE<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `SSE<D>`
+   --> src/systems/sse.rs:7:12
+    |
+  7 | pub struct SSE<D>
+    |            ^^^
+note: required by a bound in `StochasticSystem`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem`
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/multilevelcompletefeedback.rs:100:23
+    |
+100 |         let dy = self.measurement(rho, dt, dw[0]);
+    |                       ^^^^^^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `multilevelcompletefeedback::Feedback<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `multilevelcompletefeedback::Feedback<D>`
+   --> src/systems/multilevelcompletefeedback.rs:9:12
+    |
+  9 | pub struct Feedback<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+    |            ^^^^^^^^
+note: required by a bound in `StochasticSystem::measurement`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem::measurement`
+...
+175 |     fn measurement(&self, x: &V, dt: f64, dw: f64) -> f64;
+    |        ----------- required by a bound in this associated function
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+   --> src/systems/multilevelcompletefeedback.rs:217:23
+    |
+217 |         let dy = self.measurement(rho, dt, dw[0]);
+    |                       ^^^^^^^^^^^ `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>` cannot be sent between threads safely
+    |
+    = help: within `Feedback2<D>`, the trait `Send` is not implemented for `<DefaultAllocator as nalgebra::allocator::Allocator<D, D>>::Buffer<Complex<f64>>`
+note: required because it appears within the type `Matrix<Complex<f64>, D, D, <... as Allocator<..., ...>>::Buffer<...>>`
+   --> /home/lore/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/nalgebra-0.33.2/src/base/matrix.rs:174:12
+    |
+174 | pub struct Matrix<T, R, C, S> {
+    |            ^^^^^^
+note: required because it appears within the type `Feedback2<D>`
+   --> src/systems/multilevelcompletefeedback.rs:115:12
+    |
+115 | pub struct Feedback2<D: na::Dim + na::DimName + Sized + std::marker::Copy>
+    |            ^^^^^^^^^
+note: required by a bound in `StochasticSystem::measurement`
+   --> src/solver.rs:169:32
+    |
+169 | pub trait StochasticSystem<V>: Send {
+    |                                ^^^^ required by this bound in `StochasticSystem::measurement`
+...
+175 |     fn measurement(&self, x: &V, dt: f64, dw: f64) -> f64;
+    |        ----------- required by a bound in this associated function
+    = note: the full name for the type has been written to '/mnt/c/Lorenzo/Sviluppo/UNIPD/QTSim/target/release/deps/QTSim-a0275c164e0445f2.long-type-16998242334689996015.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0596]: cannot borrow data in an `Arc` as mutable
+   --> src/examples/parallel.rs:580:30
+    |
+580 |                 let system = system
+    |                              ^^^^^^ cannot borrow as mutable
+    |
+    = help: trait `DerefMut` is required to modify through a dereference, but it is not implemented for `Arc<std::sync::Mutex<dyn StochasticSystem<Matrix<Complex<f64>, Const<8>, Const<8>, ArrayStorage<Complex<f64>, 8, 8>>>>>`
+
+error[E0373]: closure may outlive the current function, but it borrows `avgv`, which is owned by the current function
+   --> src/examples/parallel.rs:579:21
+    |
+575 |     rayon::scope(|s| {
+    |                   - has type `&rayon::Scope<'1>`
+...
+579 |             s.spawn(|s| {
+    |                     ^^^ may outlive borrowed value `avgv`
+...
+596 |                         avgv = sum_arrays(&avgv, &obsv);
+    |                         ---- `avgv` is borrowed here
+    |
+note: function requires argument type to outlive `'1`
+   --> src/examples/parallel.rs:579:13
+    |
+579 | /             s.spawn(|s| {
+580 | |                 let system = system
+581 | |                     .get_mut()
+582 | |                     .expect(&format!("Could not take system {}", l));
+...   |
+599 | |                 *reference = time_average(&avgv, num_tries * num_inner_tries);
+600 | |             })
+    | |______________^
+help: to force the closure to take ownership of `avgv` (and any other referenced variables), use the `move` keyword
+    |
+579 |             s.spawn(move |s| {
+    |                     ++++
+
+error[E0373]: closure may outlive the current function, but it borrows `system`, which is owned by the current function
+   --> src/examples/parallel.rs:579:21
+    |
+575 |     rayon::scope(|s| {
+    |                   - has type `&rayon::Scope<'1>`
+...
+579 |             s.spawn(|s| {
+    |                     ^^^ may outlive borrowed value `system`
+580 |                 let system = system
+    |                              ------ `system` is borrowed here
+    |
+note: function requires argument type to outlive `'1`
+   --> src/examples/parallel.rs:579:13
+    |
+579 | /             s.spawn(|s| {
+580 | |                 let system = system
+581 | |                     .get_mut()
+582 | |                     .expect(&format!("Could not take system {}", l));
+...   |
+599 | |                 *reference = time_average(&avgv, num_tries * num_inner_tries);
+600 | |             })
+    | |______________^
+help: to force the closure to take ownership of `system` (and any other referenced variables), use the `move` keyword
+    |
+579 |             s.spawn(move |s| {
+    |                     ++++
+
+error[E0373]: closure may outlive the current function, but it borrows `l`, which is owned by the current function
+   --> src/examples/parallel.rs:579:21
+    |
+575 |     rayon::scope(|s| {
+    |                   - has type `&rayon::Scope<'1>`
+...
+579 |             s.spawn(|s| {
+    |                     ^^^ may outlive borrowed value `l`
+...
+582 |                     .expect(&format!("Could not take system {}", l));
+    |                                                                  - `l` is borrowed here
+    |
+note: function requires argument type to outlive `'1`
+   --> src/examples/parallel.rs:579:13
+    |
+579 | /             s.spawn(|s| {
+580 | |                 let system = system
+581 | |                     .get_mut()
+582 | |                     .expect(&format!("Could not take system {}", l));
+...   |
+599 | |                 *reference = time_average(&avgv, num_tries * num_inner_tries);
+600 | |             })
+    | |______________^
+help: to force the closure to take ownership of `l` (and any other referenced variables), use the `move` keyword
+    |
+579 |             s.spawn(move |s| {
+    |                     ++++
+
+Some errors have detailed explanations: E0277, E0373, E0596.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `QTSim` (bin "QTSim") due to 10 previous errors
