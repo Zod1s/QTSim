@@ -14,7 +14,7 @@ use crate::utils::*;
 use rayon::prelude::*;
 use std::thread;
 
-const NUMJOBS: usize = 1;
+const NUMJOBS: usize = 2;
 const NUMSIMS: usize = 7;
 const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 
@@ -32,9 +32,11 @@ fn main() -> utils::SolverResult<()> {
     let thread1 = thread::spawn(|| {
         examples::parallel::parallel_3d();
     });
+
     let thread2 = thread::spawn(|| {
         examples::parallel::parallel_anti_heis();
     });
+
     thread1.join().unwrap();
     thread2.join().unwrap();
 

@@ -1,5 +1,3 @@
-   Compiling QTSim v0.1.0 (/home/raceup/Franco/QTSim)
-    Finished `release` profile [optimized] target(s) in 2.20s
+    Finished `release` profile [optimized] target(s) in 0.16s
      Running `target/release/QTSim`
-Plotting
 Saving to file
