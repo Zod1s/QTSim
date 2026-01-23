@@ -1,9 +1,8 @@
-use crate::plots::constrainedlayout;
 use crate::utils::*;
 use polars::prelude::*;
 use std::fs::File;
 
-pub fn plot(path: &str) -> SolverResult<()> {
+pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
     let df = CsvReadOptions::default()
         .with_has_header(true)
         .with_parse_options(CsvParseOptions::default().with_try_parse_dates(true))
@@ -58,16 +57,25 @@ pub fn plot(path: &str) -> SolverResult<()> {
         .set_label(&format!("Windowed evolution, k = {}", 100000))
         .draw(&t_out, &avg_time_fidelity4);
 
-    plot.add(&free_curve)
+    plot.extra("plt.rcParams.update({\"text.usetex\": True, \"font.family\": \"Helvetica\"})\n")
+        .extra("plt.rcParams['figure.constrained_layout.use'] = True\n")
+        .set_save_tight(true)
+        .add(&free_curve)
         .add(&ideal_curve)
         .add(&ctrl_curve)
         .add(&time_curve1)
         .add(&time_curve2)
         .add(&time_curve3)
         .add(&time_curve4)
+        .set_labels("$t$", r"$F(\rho_t)$")
         .legend();
 
-    constrainedlayout("Images/parallel_heis", &mut plot, true)
+    if show {
+        plot.show(&format!("./Images/{}.svg", name))?;
+    } else {
+        plot.save(&format!("./Images/{}.svg", name))?;
+    }
+    Ok(())
 }
 
 fn get_column(df: &DataFrame, name: &str) -> Vec<f64> {

@@ -1,5 +1,6 @@
 import numpy as np
-# np.set_printoptions(threshold=np.inf)
+np.set_printoptions(threshold=np.inf)
+np.set_printoptions(linewidth=np.inf)
 
 paulix = np.array([[0, 1], [1, 0]])
 pauliy = np.array([[0, -1j], [1j, 0]])
@@ -37,35 +38,34 @@ for p1, p2, w in zip(s3, s1, weights):
 
 print(H)
 
-# H = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
-# L = np.array([[-1, 0, 0], [0, 2, 0], [0, 0, 3]])
 # F0 = np.ones((8, 8)) - np.eye(8)
-F0 = np.diag([1, 1, 1, 1, 1, 1, 1], k=1)
-F0 = F0 + np.conj(F0.T)
+# F0 = 4 * F0
+# F0 = np.diag([1, 1, 1, 1, 1, 1, 1], k=1)
+# F0 = F0 + np.conj(F0.T)
 eigs, eigvs = np.linalg.eigh(H)
 print(eigs)
-F0 = eigvs @ F0 @ np.conj(eigvs.T)
-print(4 * F0)
-L = H
+print(eigvs)
+# print(F0)
+# F0 = eigvs @ F0 @ np.conj(eigvs.T)
+# L = eigvs @ np.diag([-4, -4, 4, 4, 4, 4, 4, 4]) @ np.conj(eigvs.T)
+# eigsL, eigvsL = np.linalg.eigh(L)
+# print(eigvs)
+# print()
+# print(eigvsL)
+# print()
+# func = np.vectorize(lambda x: 0 if np.abs(x) < 1e-12 else x)
+# np.set_printoptions(precision=2)
+# print(func(np.conj(eigvs.T) @ H @ eigvs))
+# print(func(np.conj(eigvsL.T) @ H @ eigvsL))
+#
+# I = np.eye(8)
+#
+# A = (
+#     -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I))
+#     + np.kron(np.conj(L), L)
+#     - 0.5 * (np.kron(I, np.conj(L.T) @ L) + np.kron(L.T @ np.conj(L), I))
+# )
 
-# Lhat = L - 1j * F1
-# Hhat = H + 0.5 * (F1 @ L + np.conj(L).T @ F1)
-# print(Hhat)
-# print(Lhat)
-# print(1j * H[0, 1] - 0.5 * np.conj(Lhat[0, 0]) * Lhat[0, 1])
-
-I = np.eye(8)
-
-A = (
-    -1j * (np.kron(I, H + F0) - np.kron((H + F0).T, I))
-    + np.kron(np.conj(L), L)
-    - 0.5 * (np.kron(I, np.conj(L.T) @ L) + np.kron(L.T @ np.conj(L), I))
-)
-
-# print("Spectrum")
-# print(np.linalg.eig(A))
-
-print(np.linalg.matrix_rank(A))
-print(A.shape)
-print(A @ np.reshape(np.eye(8), newshape=64))
-# print(A @ np.array([1, 0, 0, 0, 1, 0, 0, 0, 1]))
+# print(A.shape)
+# print(np.linalg.matrix_rank(A))
+# print(A @ np.reshape(np.eye(8), newshape=64))
