@@ -20,12 +20,12 @@ const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
-        .build_global()
-        .expect("Could not create threadpool");
-
-    examples::parallel::parallel_anti_heis_purity();
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+    //     .build_global()
+    //     .expect("Could not create threadpool");
+    //
+    // examples::parallel::parallel_anti_heis_purity();
 
     // let thread1 = thread::spawn(|| {
     //     examples::parallel::parallel_3d();
@@ -47,7 +47,7 @@ fn main() -> utils::SolverResult<()> {
     //     });
     // });
 
-    // dataplots::plot("./anti_heis2.csv", "parallel_anti_heis2", false)
+    dataplots::plot("./anti_heis2.csv", "parallel_anti_heis2", false)
 
     // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
@@ -134,5 +134,5 @@ fn main() -> utils::SolverResult<()> {
     //         .sum::<Operator<na::U2>>()
     // );
 
-    Ok(())
+    // Ok(())
 }
