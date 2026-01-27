@@ -147,11 +147,11 @@ where
 
 pub fn random_pure_state<D>(seed: Option<u64>) -> State<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<na::Const<1>, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<na::U1, D>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     let x = random_unit_complex_vector::<D>(seed);
     let x = &x * x.adjoint();
@@ -278,10 +278,10 @@ impl From<std::io::Error> for SolverError {
 
 pub fn check_hermiticity<D>(op: &Operator<D>) -> SolverResult<()>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     if op == &op.adjoint() {
         Ok(())
@@ -292,10 +292,10 @@ where
 
 pub fn check_positivity<D>(op: &Operator<D>) -> SolverResult<()>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     check_hermiticity(op)?;
     if op.symmetric_eigenvalues().iter().all(|&e| e >= 0.) {
@@ -307,10 +307,10 @@ where
 
 pub fn check_state<D>(state: &State<D>) -> SolverResult<()>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     // if we know that the operator is positive semidefinite, surely the diagonal
     // is real, otherwise it would not be hermitian
@@ -324,7 +324,7 @@ where
 
 pub fn hamiltonian_term<D>(h: &Operator<D>, rho: &State<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     -commutator(h, rho) * na::Complex::I
@@ -332,7 +332,7 @@ where
 
 pub fn measurement_term<D>(l: &Operator<D>, rho: &State<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     l * rho * l.adjoint() - anticommutator(&(l.adjoint() * l), rho).scale(0.5)
@@ -340,7 +340,7 @@ where
 
 pub fn noise_term<D>(l: &Operator<D>, rho: &State<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     l * rho + rho * l.adjoint() - rho * ((l + l.adjoint()) * rho).trace()
@@ -348,7 +348,7 @@ where
 
 pub fn corrected_hamiltonian<D>(h: &Operator<D>, l: &Operator<D>, f: &Operator<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     h + (f * l + l.adjoint() * f).scale(0.5)
@@ -356,7 +356,7 @@ where
 
 pub fn lindbladian<D>(h: &Operator<D>, l: &Operator<D>, x: &Operator<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     hamiltonian_term(h, x) + measurement_term(l, x)
@@ -387,10 +387,10 @@ pub fn check_qubit_feeback(h: &QubitOperator, l: &QubitOperator, f: &QubitOperat
 
 fn sqrthm<D>(rho: &Operator<D>) -> Operator<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     let mut decomp = rho.clone().symmetric_eigen();
     decomp.eigenvalues = decomp
@@ -401,10 +401,10 @@ where
 
 pub fn fidelity<D>(rho: &State<D>, sigma: &State<D>) -> f64
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     let rhosqrt = sqrthm(rho);
     let fid = sqrthm(&(&rhosqrt * sigma * &rhosqrt)).trace().re.powi(2);
@@ -422,10 +422,10 @@ where
 
 pub fn fidelity_to_projector<D>(rho: &State<D>, sigma: &State<D>) -> f64
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     let temp = sigma * rho * sigma;
     temp.symmetric_eigenvalues()
@@ -442,7 +442,7 @@ pub fn rouchonstep<D>(
     dw: f64,
 ) -> State<D>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
 {
     let id = Operator::<D>::identity();
@@ -458,7 +458,7 @@ where
 
 pub fn veclindblad<D>(h: &Operator<D>, l: &Operator<D>) -> Operator<na::DimProd<D, D>>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy + na::DimMul<D>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy + na::DimMul<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     na::DefaultAllocator:
         na::allocator::Allocator<<D as na::DimMul<D>>::Output, <D as na::DimMul<D>>::Output>,
@@ -471,7 +471,7 @@ where
 
 pub fn veclindbladheis<D>(h: &Operator<D>, l: &Operator<D>) -> Operator<na::DimProd<D, D>>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy + na::DimMul<D>,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy + na::DimMul<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
     na::DefaultAllocator:
         na::allocator::Allocator<<D as na::DimMul<D>>::Output, <D as na::DimMul<D>>::Output>,
@@ -556,10 +556,10 @@ pub fn time_average(array: &[f64], n: u64) -> Vec<f64> {
 #[inline(always)]
 pub fn compute_fidelity<D>(states: &[State<D>], projector: &State<D>) -> Vec<f64>
 where
-    D: na::Dim + na::DimName + na::DimSub<na::Const<1>> + std::marker::Copy,
+    D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
     na::DefaultAllocator: na::allocator::Allocator<D>,
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
-    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::Const<1>>>::Output>,
+    na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     states
         .iter()
@@ -578,4 +578,23 @@ where
         .iter()
         .map(|rho| (rho * projector).trace().re)
         .collect()
+}
+
+#[inline(always)]
+pub fn partialtracequbit<const D1: usize, const D2: usize>(
+    state: &State<na::Const<D1>>,
+    projectors: &[na::SMatrix<na::Complex<f64>, D1, D2>],
+) -> State<na::Const<D2>>
+where
+    na::Const<D1>: na::Dim,
+    na::Const<D2>: na::Dim,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<D1>>,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<D2>>,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<D1>, na::Const<D1>>,
+    na::DefaultAllocator: na::allocator::Allocator<na::Const<D2>, na::Const<D2>>,
+{
+    projectors
+        .iter()
+        .map(|proj| proj.adjoint() * state * proj)
+        .sum::<State<na::Const<D2>>>()
 }

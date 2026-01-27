@@ -19,6 +19,12 @@ pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
     let avg_time_fidelity2 = get_column(&df, "avg_time_fidelity2");
     let avg_time_fidelity3 = get_column(&df, "avg_time_fidelity3");
     let avg_time_fidelity4 = get_column(&df, "avg_time_fidelity4");
+    // let mut avg_ideal_trace_a = get_column(&df, "avg_ideal_trace_a");
+    // let mut avg_time_trace_a1 = get_column(&df, "avg_time_trace_a1");
+    // let mut avg_ideal_trace_b = get_column(&df, "avg_ideal_trace_b");
+    // let mut avg_time_trace_b1 = get_column(&df, "avg_time_trace_b1");
+    // let mut avg_ideal_trace_c = get_column(&df, "avg_ideal_trace_c");
+    // let mut avg_time_trace_c1 = get_column(&df, "avg_time_trace_c1");
 
     let mut plot = plotpy::Plot::new();
 
@@ -39,27 +45,63 @@ pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
 
     let mut time_curve1 = plotpy::Curve::new();
     time_curve1
-        .set_label(&format!("Windowed evolution, k = {}", 5000))
+        .set_label(&format!("Windowed evolution, $k = {}$", 5000))
         .draw(&t_out, &avg_time_fidelity1);
 
     let mut time_curve2 = plotpy::Curve::new();
     time_curve2
-        .set_label(&format!("Windowed evolution, k = {}", 20000))
+        .set_label(&format!("Windowed evolution, $k = {}$", 20000))
         .draw(&t_out, &avg_time_fidelity2);
 
     let mut time_curve3 = plotpy::Curve::new();
     time_curve3
-        .set_label(&format!("Windowed evolution, k = {}", 50000))
+        .set_label(&format!("Windowed evolution, $k = {}$", 50000))
         .draw(&t_out, &avg_time_fidelity3);
 
     let mut time_curve4 = plotpy::Curve::new();
     time_curve4
-        .set_label(&format!("Windowed evolution, k = {}", 100000))
+        .set_label(&format!("Windowed evolution, $k = {}$", 100000))
         .draw(&t_out, &avg_time_fidelity4);
+
+    // let mut ideal_a_curve = plotpy::Curve::new();
+    // ideal_a_curve
+    //     .set_label("Ideal A purity curve")
+    //     .draw(&t_out, &avg_ideal_trace_a);
+    //
+    // let mut ideal_b_curve = plotpy::Curve::new();
+    // ideal_b_curve
+    //     .set_label("Ideal B purity curve")
+    //     .draw(&t_out, &avg_ideal_trace_b);
+    //
+    // let mut ideal_c_curve = plotpy::Curve::new();
+    // ideal_c_curve
+    //     .set_label("Ideal C purity curve")
+    //     .draw(&t_out, &avg_ideal_trace_c);
+    //
+    // let mut time_a_curve = plotpy::Curve::new();
+    // time_a_curve
+    //     .set_label("Time A purity curve")
+    //     .draw(&t_out, &avg_time_trace_a1);
+    //
+    // let mut time_b_curve = plotpy::Curve::new();
+    // time_b_curve
+    //     .set_label("Time B purity curve")
+    //     .draw(&t_out, &avg_time_trace_b1);
+    //
+    // let mut time_c_curve = plotpy::Curve::new();
+    // time_c_curve
+    //     .set_label("Time C purity curve")
+    //     .draw(&t_out, &avg_time_trace_c1);
 
     plot.extra("plt.rcParams.update({\"text.usetex\": True, \"font.family\": \"Helvetica\"})\n")
         .extra("plt.rcParams['figure.constrained_layout.use'] = True\n")
         .set_save_tight(true)
+        // .add(&ideal_a_curve)
+        // .add(&ideal_b_curve)
+        // .add(&ideal_c_curve)
+        // .add(&time_a_curve)
+        // .add(&time_b_curve)
+        // .add(&time_c_curve)
         .add(&free_curve)
         .add(&ideal_curve)
         .add(&ctrl_curve)
