@@ -25,7 +25,7 @@ fn main() -> utils::SolverResult<()> {
         .build_global()
         .expect("Could not create threadpool");
 
-    examples::parallel::parallel_anti_heis();
+    examples::parallel::parallel_anti_heis_purity();
 
     // let thread1 = thread::spawn(|| {
     //     examples::parallel::parallel_3d();
