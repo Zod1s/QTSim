@@ -2,6 +2,7 @@ use crate::solver::{Rk4, StochasticSolver, StochasticSystem};
 use crate::systems;
 use crate::utils::*;
 use indicatif::{ParallelProgressIterator, ProgressBar, ProgressStyle};
+use itertools::izip;
 use polars::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
@@ -581,37 +582,33 @@ pub fn parallel_anti_heis() {
 
     let state_gen = random_pure_state::<na::U8>;
 
-    let num_tries = 1000;
-    let num_inner_tries = 20;
-    let final_time: f64 = 30.0;
+    let num_tries = 10;
+    let num_inner_tries = 10;
+    let final_time: f64 = 15.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
-    let mut avg_free_fidelity = vec![0.; num_steps + 1];
-    let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
-    let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity1 = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity3 = vec![0.; num_steps + 1];
-    let mut avg_time_fidelity4 = vec![0.; num_steps + 1];
-    // let mut avg_ideal_trace_a = vec![0.; num_steps + 1];
-    // let mut avg_time_trace_a1 = vec![0.; num_steps + 1];
-    // let mut avg_ideal_trace_b = vec![0.; num_steps + 1];
-    // let mut avg_time_trace_b1 = vec![0.; num_steps + 1];
-    // let mut avg_ideal_trace_c = vec![0.; num_steps + 1];
-    // let mut avg_time_trace_c1 = vec![0.; num_steps + 1];
+    // let mut avg_free_fidelity = vec![0.; num_steps + 1];
+    // let mut avg_ideal_fidelity = vec![0.; num_steps + 1];
+    // let mut avg_ctrl_fidelity = vec![0.; num_steps + 1];
+    // let mut avg_time_fidelity1 = vec![0.; num_steps + 1];
+    // let mut avg_time_fidelity2 = vec![0.; num_steps + 1];
+    // let mut avg_time_fidelity3 = vec![0.; num_steps + 1];
+    // let mut avg_time_fidelity4 = vec![0.; num_steps + 1];
+    let mut avg_ideal_min_purity = vec![0.; num_steps + 1];
+    let mut avg_time_min_purity1 = vec![0.; num_steps + 1];
 
-    // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
-    // let id = na::Matrix2::<na::Complex<f64>>::identity();
-    // let abtrace = (0..4)
-    //     .map(|i| vectors[i / 2].kronecker(&vectors[i % 2]).kronecker(&id))
-    //     .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
-    // let bctrace = (0..4)
-    //     .map(|i| id.kronecker(&vectors[i / 2]).kronecker(&vectors[i % 2]))
-    //     .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
-    // let actrace = (0..4)
-    //     .map(|i| vectors[i / 2].kronecker(&id).kronecker(&vectors[i % 2]))
-    //     .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
+    let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
+    let id = na::Matrix2::<na::Complex<f64>>::identity();
+    let abtrace = (0..4)
+        .map(|i| vectors[i / 2].kronecker(&vectors[i % 2]).kronecker(&id))
+        .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
+    let bctrace = (0..4)
+        .map(|i| id.kronecker(&vectors[i / 2]).kronecker(&vectors[i % 2]))
+        .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
+    let actrace = (0..4)
+        .map(|i| vectors[i / 2].kronecker(&id).kronecker(&vectors[i % 2]))
+        .collect::<Vec<na::SMatrix<na::Complex<f64>, 8, 2>>>();
 
     let delta = 6.;
     let gamma = 0.2 * delta;
@@ -623,63 +620,63 @@ pub fn parallel_anti_heis() {
     let k3 = 50000;
     let k4 = 100000;
 
-    // let bar = ProgressBar::new(2 * num_tries).with_style(
-    //     ProgressStyle::default_bar()
-    //         .template("[{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-    //         .unwrap(),
-    // );
+    let bar = ProgressBar::new(2 * num_tries).with_style(
+        ProgressStyle::default_bar()
+            .template("[{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+            .unwrap(),
+    );
 
     rayon::scope(|s| {
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut system = systems::sse::SSE::new(h, l, Some(num_inner_tries * i + j));
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-
-                    avg_free_fidelity = sum_arrays(&avg_free_fidelity, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_free_fidelity = time_average(&avg_free_fidelity, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut system = systems::multilevelcompletefeedback::Feedback::new(
-                        h,
-                        l,
-                        hc,
-                        f0,
-                        f1,
-                        y1,
-                        delta,
-                        gamma,
-                        beta,
-                        epsilon,
-                        Some(num_inner_tries * i + j),
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-
-                    avg_ctrl_fidelity = sum_arrays(&avg_ctrl_fidelity, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_ctrl_fidelity = time_average(&avg_ctrl_fidelity, num_tries * num_inner_tries);
-        });
+        // s.spawn(|s| {
+        //     for i in 0..num_tries {
+        //         let x0 = state_gen(Some(i));
+        //
+        //         for j in 0..num_inner_tries {
+        //             let mut system = systems::sse::SSE::new(h, l, Some(num_inner_tries * i + j));
+        //
+        //             let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        //             solver.integrate();
+        //
+        //             let rho_out = solver.state_out();
+        //             let obsv = compute_prob(rho_out, &rhod);
+        //
+        //             avg_free_fidelity = sum_arrays(&avg_free_fidelity, &obsv);
+        //         }
+        //         // bar.inc(1);
+        //     }
+        //     avg_free_fidelity = time_average(&avg_free_fidelity, num_tries * num_inner_tries);
+        // });
+        // s.spawn(|s| {
+        //     for i in 0..num_tries {
+        //         let x0 = state_gen(Some(i));
+        //
+        //         for j in 0..num_inner_tries {
+        //             let mut system = systems::multilevelcompletefeedback::Feedback::new(
+        //                 h,
+        //                 l,
+        //                 hc,
+        //                 f0,
+        //                 f1,
+        //                 y1,
+        //                 delta,
+        //                 gamma,
+        //                 beta,
+        //                 epsilon,
+        //                 Some(num_inner_tries * i + j),
+        //             );
+        //
+        //             let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        //             solver.integrate();
+        //
+        //             let rho_out = solver.state_out();
+        //             let obsv = compute_prob(rho_out, &rhod);
+        //
+        //             avg_ctrl_fidelity = sum_arrays(&avg_ctrl_fidelity, &obsv);
+        //         }
+        //         // bar.inc(1);
+        //     }
+        //     avg_ctrl_fidelity = time_average(&avg_ctrl_fidelity, num_tries * num_inner_tries);
+        // });
         s.spawn(|s| {
             for i in 0..num_tries {
                 let x0 = state_gen(Some(i));
@@ -701,49 +698,48 @@ pub fn parallel_anti_heis() {
                     solver.integrate();
 
                     let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-                    avg_ideal_fidelity = sum_arrays(&avg_ideal_fidelity, &obsv);
-                    // let obsv_a = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         bctrace
-                    //             .iter()
-                    //             .map(|bc| bc.adjoint() * rho * bc)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
-                    // let obsv_b = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         actrace
-                    //             .iter()
-                    //             .map(|ac| ac.adjoint() * rho * ac)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
-                    // let obsv_c = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         abtrace
-                    //             .iter()
-                    //             .map(|ab| ab.adjoint() * rho * ab)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
-                    //
-                    // avg_ideal_trace_a = sum_arrays(&avg_ideal_trace_a, &obsv_a);
-                    // avg_ideal_trace_b = sum_arrays(&avg_ideal_trace_b, &obsv_b);
-                    // avg_ideal_trace_c = sum_arrays(&avg_ideal_trace_c, &obsv_c);
+                    // let obsv = compute_prob(rho_out, &rhod);
+                    // avg_ideal_fidelity = sum_arrays(&avg_ideal_fidelity, &obsv);
+                    let obsv_a = rho_out
+                        .iter()
+                        .map(|rho| {
+                            bctrace
+                                .iter()
+                                .map(|bc| bc.adjoint() * rho * bc)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
+                    let obsv_b = rho_out
+                        .iter()
+                        .map(|rho| {
+                            actrace
+                                .iter()
+                                .map(|ac| ac.adjoint() * rho * ac)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
+                    let obsv_c = rho_out
+                        .iter()
+                        .map(|rho| {
+                            abtrace
+                                .iter()
+                                .map(|ab| ab.adjoint() * rho * ab)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
+
+                    let min_purity = izip!(&obsv_a, &obsv_b, &obsv_c)
+                        .map(|(a, b, c)| a.min(*b).min(*c))
+                        .collect::<Vec<f64>>();
+                    avg_ideal_min_purity = sum_arrays(&avg_ideal_min_purity, &min_purity);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            avg_ideal_fidelity = time_average(&avg_ideal_fidelity, num_tries * num_inner_tries);
-            // avg_ideal_trace_a = time_average(&avg_ideal_trace_a, num_tries * num_inner_tries);
-            // avg_ideal_trace_b = time_average(&avg_ideal_trace_b, num_tries * num_inner_tries);
-            // avg_ideal_trace_c = time_average(&avg_ideal_trace_c, num_tries * num_inner_tries);
+            // avg_ideal_fidelity = time_average(&avg_ideal_fidelity, num_tries * num_inner_tries);
+            avg_ideal_min_purity = time_average(&avg_ideal_min_purity, num_tries * num_inner_tries);
         });
         s.spawn(|s| {
             for i in 0..num_tries {
@@ -769,148 +765,147 @@ pub fn parallel_anti_heis() {
                     solver.integrate();
 
                     let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-                    avg_time_fidelity1 = sum_arrays(&avg_time_fidelity1, &obsv);
-                    // let obsv_a = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         bctrace
-                    //             .iter()
-                    //             .map(|bc| bc.adjoint() * rho * bc)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
-                    // let obsv_b = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         actrace
-                    //             .iter()
-                    //             .map(|ac| ac.adjoint() * rho * ac)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
-                    // let obsv_c = rho_out
-                    //     .iter()
-                    //     .map(|rho| {
-                    //         abtrace
-                    //             .iter()
-                    //             .map(|ab| ab.adjoint() * rho * ab)
-                    //             .sum::<QubitOperator>()
-                    //     })
-                    //     .map(|rho| (rho * rho).trace().re)
-                    //     .collect::<Vec<f64>>();
+                    // let obsv = compute_prob(rho_out, &rhod);
+                    // avg_time_fidelity1 = sum_arrays(&avg_time_fidelity1, &obsv);
+                    let obsv_a = rho_out
+                        .iter()
+                        .map(|rho| {
+                            bctrace
+                                .iter()
+                                .map(|bc| bc.adjoint() * rho * bc)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
+                    let obsv_b = rho_out
+                        .iter()
+                        .map(|rho| {
+                            actrace
+                                .iter()
+                                .map(|ac| ac.adjoint() * rho * ac)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
+                    let obsv_c = rho_out
+                        .iter()
+                        .map(|rho| {
+                            abtrace
+                                .iter()
+                                .map(|ab| ab.adjoint() * rho * ab)
+                                .sum::<QubitOperator>()
+                        })
+                        .map(|rho| (rho * rho).trace().re)
+                        .collect::<Vec<f64>>();
 
-                    // avg_time_trace_a1 = sum_arrays(&avg_time_trace_a1, &obsv_a);
-                    // avg_time_trace_b1 = sum_arrays(&avg_time_trace_b1, &obsv_b);
-                    // avg_time_trace_c1 = sum_arrays(&avg_time_trace_c1, &obsv_c);
+                    let min_purity = izip!(&obsv_a, &obsv_b, &obsv_c)
+                        .map(|(a, b, c)| a.min(*b).min(*c))
+                        .collect::<Vec<f64>>();
+                    avg_time_min_purity1 = sum_arrays(&avg_time_min_purity1, &min_purity);
                 }
-                // bar.inc(1);
+                bar.inc(1);
             }
-            avg_time_fidelity1 = time_average(&avg_time_fidelity1, num_tries * num_inner_tries);
-            // avg_time_trace_a1 = time_average(&avg_time_trace_a1, num_tries * num_inner_tries);
-            // avg_time_trace_b1 = time_average(&avg_time_trace_b1, num_tries * num_inner_tries);
-            // avg_time_trace_c1 = time_average(&avg_time_trace_c1, num_tries * num_inner_tries);
+            avg_time_min_purity1 = time_average(&avg_time_min_purity1, num_tries * num_inner_tries);
+            // avg_time_fidelity1 = time_average(&avg_time_fidelity1, num_tries * num_inner_tries);
         });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h,
-                        l,
-                        hc,
-                        f0,
-                        f1,
-                        y1,
-                        k2,
-                        delta,
-                        gamma,
-                        beta,
-                        epsilon,
-                        Some(num_inner_tries * i + j),
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-
-                    avg_time_fidelity2 = sum_arrays(&avg_time_fidelity2, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity2 = time_average(&avg_time_fidelity2, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h,
-                        l,
-                        hc,
-                        f0,
-                        f1,
-                        y1,
-                        k3,
-                        delta,
-                        gamma,
-                        beta,
-                        epsilon,
-                        Some(num_inner_tries * i + j),
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-
-                    avg_time_fidelity3 = sum_arrays(&avg_time_fidelity3, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity3 = time_average(&avg_time_fidelity3, num_tries * num_inner_tries);
-        });
-        s.spawn(|s| {
-            for i in 0..num_tries {
-                let x0 = state_gen(Some(i));
-
-                for j in 0..num_inner_tries {
-                    let mut system = systems::multilevelcompletefeedback::Feedback2::new(
-                        h,
-                        l,
-                        hc,
-                        f0,
-                        f1,
-                        y1,
-                        k4,
-                        delta,
-                        gamma,
-                        beta,
-                        epsilon,
-                        Some(num_inner_tries * i + j),
-                    );
-
-                    let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
-                    solver.integrate();
-
-                    let rho_out = solver.state_out();
-                    let obsv = compute_prob(rho_out, &rhod);
-
-                    avg_time_fidelity4 = sum_arrays(&avg_time_fidelity4, &obsv);
-                }
-                // bar.inc(1);
-            }
-            avg_time_fidelity4 = time_average(&avg_time_fidelity4, num_tries * num_inner_tries);
-        });
+        // s.spawn(|s| {
+        //     for i in 0..num_tries {
+        //         let x0 = state_gen(Some(i));
+        //
+        //         for j in 0..num_inner_tries {
+        //             let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+        //                 h,
+        //                 l,
+        //                 hc,
+        //                 f0,
+        //                 f1,
+        //                 y1,
+        //                 k2,
+        //                 delta,
+        //                 gamma,
+        //                 beta,
+        //                 epsilon,
+        //                 Some(num_inner_tries * i + j),
+        //             );
+        //
+        //             let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        //             solver.integrate();
+        //
+        //             let rho_out = solver.state_out();
+        //             let obsv = compute_prob(rho_out, &rhod);
+        //
+        //             avg_time_fidelity2 = sum_arrays(&avg_time_fidelity2, &obsv);
+        //         }
+        //         // bar.inc(1);
+        //     }
+        //     avg_time_fidelity2 = time_average(&avg_time_fidelity2, num_tries * num_inner_tries);
+        // });
+        // s.spawn(|s| {
+        //     for i in 0..num_tries {
+        //         let x0 = state_gen(Some(i));
+        //
+        //         for j in 0..num_inner_tries {
+        //             let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+        //                 h,
+        //                 l,
+        //                 hc,
+        //                 f0,
+        //                 f1,
+        //                 y1,
+        //                 k3,
+        //                 delta,
+        //                 gamma,
+        //                 beta,
+        //                 epsilon,
+        //                 Some(num_inner_tries * i + j),
+        //             );
+        //
+        //             let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        //             solver.integrate();
+        //
+        //             let rho_out = solver.state_out();
+        //             let obsv = compute_prob(rho_out, &rhod);
+        //
+        //             avg_time_fidelity3 = sum_arrays(&avg_time_fidelity3, &obsv);
+        //         }
+        //         // bar.inc(1);
+        //     }
+        //     avg_time_fidelity3 = time_average(&avg_time_fidelity3, num_tries * num_inner_tries);
+        // });
+        // s.spawn(|s| {
+        //     for i in 0..num_tries {
+        //         let x0 = state_gen(Some(i));
+        //
+        //         for j in 0..num_inner_tries {
+        //             let mut system = systems::multilevelcompletefeedback::Feedback2::new(
+        //                 h,
+        //                 l,
+        //                 hc,
+        //                 f0,
+        //                 f1,
+        //                 y1,
+        //                 k4,
+        //                 delta,
+        //                 gamma,
+        //                 beta,
+        //                 epsilon,
+        //                 Some(num_inner_tries * i + j),
+        //             );
+        //
+        //             let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
+        //             solver.integrate();
+        //
+        //             let rho_out = solver.state_out();
+        //             let obsv = compute_prob(rho_out, &rhod);
+        //
+        //             avg_time_fidelity4 = sum_arrays(&avg_time_fidelity4, &obsv);
+        //         }
+        //         // bar.inc(1);
+        //     }
+        //     avg_time_fidelity4 = time_average(&avg_time_fidelity4, num_tries * num_inner_tries);
+        // });
     });
-    // bar.finish();
+    bar.finish();
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
@@ -921,19 +916,15 @@ pub fn parallel_anti_heis() {
 
     let mut df: DataFrame = df!(
         "time" => t_out,
-        "avg_free_fidelity" => avg_free_fidelity,
-        "avg_ideal_fidelity" => avg_ideal_fidelity,
-        "avg_ctrl_fidelity" => avg_ctrl_fidelity,
-        "avg_time_fidelity1" => avg_time_fidelity1,
-        "avg_time_fidelity2" => avg_time_fidelity2,
-        "avg_time_fidelity3" => avg_time_fidelity3,
-        "avg_time_fidelity4" => avg_time_fidelity4,
-        // "avg_ideal_trace_a" => avg_ideal_trace_a,
-        // "avg_ideal_trace_b" => avg_ideal_trace_b,
-        // "avg_ideal_trace_c" => avg_ideal_trace_c,
-        // "avg_time_trace_a1" => avg_time_trace_a1,
-        // "avg_time_trace_b1" => avg_time_trace_b1,
-        // "avg_time_trace_c1" => avg_time_trace_c1,
+        // "avg_free_fidelity" => avg_free_fidelity,
+        // "avg_ideal_fidelity" => avg_ideal_fidelity,
+        // "avg_ctrl_fidelity" => avg_ctrl_fidelity,
+        // "avg_time_fidelity1" => avg_time_fidelity1,
+        // "avg_time_fidelity2" => avg_time_fidelity2,
+        // "avg_time_fidelity3" => avg_time_fidelity3,
+        // "avg_time_fidelity4" => avg_time_fidelity4,
+        "avg_ideal_min_purity" => avg_ideal_min_purity,
+        "avg_time_min_purity1" => avg_time_min_purity1,
     )
     .unwrap();
 
