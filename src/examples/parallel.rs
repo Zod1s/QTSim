@@ -862,9 +862,9 @@ pub fn parallel_anti_heis_purity() {
 
     let state_gen = random_pure_state::<na::U8>;
 
-    let num_tries = 10;
-    let num_inner_tries = 10;
-    let final_time: f64 = 15.0;
+    let num_tries = 1000;
+    let num_inner_tries = 20;
+    let final_time: f64 = 30.0;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -898,11 +898,11 @@ pub fn parallel_anti_heis_purity() {
     let k3 = 50000;
     let k4 = 100000;
 
-    let bar = ProgressBar::new(7 * num_tries).with_style(
-        ProgressStyle::default_bar()
-            .template("[{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
-            .unwrap(),
-    );
+    // let bar = ProgressBar::new(7 * num_tries).with_style(
+    //     ProgressStyle::default_bar()
+    //         .template("[{eta_precise}] {bar:40.cyan/blue} {pos:>7}/{len:}")
+    //         .unwrap(),
+    // );
 
     println!("Spawning");
     rayon::scope(|s| {
@@ -953,7 +953,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_free_min_purity = sum_arrays(&avg_free_min_purity, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_free_min_purity = time_average(&avg_free_min_purity, num_tries * num_inner_tries);
         });
@@ -1016,7 +1016,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_ctrl_min_purity = sum_arrays(&avg_ctrl_min_purity, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_ctrl_min_purity = time_average(&avg_ctrl_min_purity, num_tries * num_inner_tries);
         });
@@ -1077,7 +1077,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_ideal_min_purity = sum_arrays(&avg_ideal_min_purity, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_ideal_min_purity = time_average(&avg_ideal_min_purity, num_tries * num_inner_tries);
         });
@@ -1141,7 +1141,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_time_min_purity1 = sum_arrays(&avg_time_min_purity1, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_time_min_purity1 = time_average(&avg_time_min_purity1, num_tries * num_inner_tries);
         });
@@ -1205,7 +1205,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_time_min_purity2 = sum_arrays(&avg_time_min_purity2, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_time_min_purity2 = time_average(&avg_time_min_purity2, num_tries * num_inner_tries);
         });
@@ -1269,7 +1269,7 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_time_min_purity3 = sum_arrays(&avg_time_min_purity3, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_time_min_purity3 = time_average(&avg_time_min_purity3, num_tries * num_inner_tries);
         });
@@ -1333,12 +1333,12 @@ pub fn parallel_anti_heis_purity() {
                         .collect::<Vec<f64>>();
                     avg_time_min_purity4 = sum_arrays(&avg_time_min_purity4, &min_purity);
                 }
-                bar.inc(1);
+                // bar.inc(1);
             }
             avg_time_min_purity4 = time_average(&avg_time_min_purity4, num_tries * num_inner_tries);
         });
     });
-    bar.finish();
+    // bar.finish();
 
     let t_out = (0..=num_steps)
         .map(|n| (n as f64) * dt)
