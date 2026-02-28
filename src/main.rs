@@ -2,8 +2,6 @@
 
 mod dataplots;
 mod examples;
-// mod kron;
-// mod lyapunov;
 mod plots;
 mod solver;
 mod systems;
@@ -25,7 +23,7 @@ fn main() -> utils::SolverResult<()> {
         .build_global()
         .expect("Could not create threadpool");
 
-    // examples::parallel::parallel_anti_heis_purity();
+    examples::parallel::parallel_3d();
 
     // let thread1 = thread::spawn(|| {
     //     examples::parallel::parallel_3d();
@@ -47,7 +45,8 @@ fn main() -> utils::SolverResult<()> {
     //     });
     // });
 
-    dataplots::plot("./anti_heis2.csv", "parallel_anti_heis2", false)
+    // dataplots::plot("./anti_heis.csv", "parallel_anti_heis", true);
+    dataplots::plot("./3d4.csv", "parallel_3d4", true);
 
     // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
@@ -134,5 +133,5 @@ fn main() -> utils::SolverResult<()> {
     //         .sum::<Operator<na::U2>>()
     // );
 
-    // Ok(())
+    Ok(())
 }

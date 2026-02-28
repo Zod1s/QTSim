@@ -16,6 +16,7 @@ where
     l: Operator<D>,
     rng: StdRng,
     wiener: wiener::Wiener,
+    eta: f64,
 }
 
 impl<D> SSE<D>
@@ -25,12 +26,13 @@ where
     <na::DefaultAllocator as na::allocator::Allocator<D, D>>::Buffer<na::Complex<f64>>:
         std::marker::Copy,
 {
-    pub fn new(h: Operator<D>, l: Operator<D>, seed: Option<u64>) -> Self {
+    pub fn new(h: Operator<D>, l: Operator<D>, eta: f64, seed: Option<u64>) -> Self {
         Self {
             h,
             l,
             rng: StdRng::seed_from_u64(seed.unwrap_or(0)),
             wiener: wiener::Wiener::new(),
+            eta,
         }
     }
 }
@@ -44,7 +46,7 @@ where
         std::marker::Copy,
 {
     fn system(&mut self, _: f64, dt: f64, rho: &State<D>, drho: &mut State<D>, dw: &Vec<f64>) {
-        *drho = rouchonstep(dt, &rho, &self.h, &self.l, dw[0]);
+        *drho = rouchonstep(dt, &rho, &self.h, &self.l, dw[0], self.eta);
     }
 
     fn generate_noises(&mut self, dt: f64, dw: &mut Vec<f64>) {

@@ -25,6 +25,7 @@ where
     lastset: LastSet,
     rng: StdRng,
     wiener: wiener::Wiener,
+    eta: f64,
 }
 
 impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> Feedback<D>
@@ -39,6 +40,7 @@ where
         hc: Operator<D>,
         f0: Operator<D>,
         f1: Operator<D>,
+        eta: f64,
         y1: f64,
         delta: f64,
         gamma: f64,
@@ -65,6 +67,7 @@ where
             ub: 2. * delta - gamma + y1,
             lb: 2. * delta - 2. * gamma + y1,
             wiener: wiener::Wiener::new(),
+            eta,
         }
     }
 }
@@ -99,7 +102,7 @@ where
         };
 
         let hhat = self.hhat + self.f0.scale(corr);
-        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
+        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0], self.eta);
         let dy = self.measurement(rho, dt, dw[0]);
         self.y += dy;
     }
@@ -137,6 +140,7 @@ where
     lastset: LastSet,
     rng: StdRng,
     wiener: wiener::Wiener,
+    eta: f64,
 }
 
 impl<D: na::Dim + na::DimName + Sized + std::marker::Copy> Feedback2<D>
@@ -151,6 +155,7 @@ where
         hc: Operator<D>,
         f0: Operator<D>,
         f1: Operator<D>,
+        eta: f64,
         y1: f64,
         k: usize,
         delta: f64,
@@ -181,6 +186,7 @@ where
             ub: 2. * delta - gamma + y1,
             lb: 2. * delta - 2. * gamma + y1,
             wiener: wiener::Wiener::new(),
+            eta,
         }
     }
 }
@@ -219,7 +225,7 @@ where
         };
 
         let hhat = self.hhat + self.f0.scale(corr);
-        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0]);
+        *drho = rouchonstep(dt, &rho, &hhat, &self.lhat, dw[0], self.eta);
         let dy = self.measurement(rho, dt, dw[0]);
         self.y += dy - self.lastdys[self.lastdy];
         self.lastdys[self.lastdy] = dy;

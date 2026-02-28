@@ -23,10 +23,11 @@ pub fn parallel_3d() {
 
     let state_gen = random_pure_state::<na::U3>;
 
-    let num_tries = 1000;
-    let num_inner_tries = 20;
+    let num_tries = 10;
+    let num_inner_tries = 5;
     let final_time: f64 = 30.0;
     let dt = 0.0001;
+    let eta = 0.6;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
     let delta = 3.;
@@ -53,7 +54,8 @@ pub fn parallel_3d() {
                 let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
-                    let mut system = systems::sse::SSE::new(h, l, Some(num_inner_tries * i + j));
+                    let mut system =
+                        systems::sse::SSE::new(h, l, eta, Some(num_inner_tries * i + j));
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
@@ -77,6 +79,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -107,6 +110,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -135,6 +139,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k1,
                         delta,
@@ -166,6 +171,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k2,
                         delta,
@@ -197,6 +203,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k3,
                         delta,
@@ -228,6 +235,7 @@ pub fn parallel_3d() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k4,
                         delta,
@@ -255,7 +263,7 @@ pub fn parallel_3d() {
         .collect::<Vec<f64>>();
 
     println!("Saving to file");
-    let mut file = File::create("./3d.csv").expect("Could not create file");
+    let mut file = File::create("./3d3.csv").expect("Could not create file");
 
     let mut df: DataFrame = df!(
         "time" => t_out,
@@ -550,7 +558,6 @@ pub fn parallel_heis() {
         .with_separator(b',')
         .finish(&mut df);
 }
-*/
 
 pub fn parallel_anti_heis() {
     let h = -ferromagnetictriangle(&vec![1.0, 1.0, 2.0]);
@@ -585,6 +592,7 @@ pub fn parallel_anti_heis() {
     let num_tries = 10;
     let num_inner_tries = 10;
     let final_time: f64 = 15.0;
+    let eta = 1.;
     let dt = 0.0001;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
@@ -612,7 +620,8 @@ pub fn parallel_anti_heis() {
                 let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
-                    let mut system = systems::sse::SSE::new(h, l, Some(num_inner_tries * i + j));
+                    let mut system =
+                        systems::sse::SSE::new(h, l, eta, Some(num_inner_tries * i + j));
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
@@ -636,6 +645,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -666,6 +676,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -693,6 +704,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k1,
                         delta,
@@ -723,6 +735,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k2,
                         delta,
@@ -754,6 +767,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k3,
                         delta,
@@ -785,6 +799,7 @@ pub fn parallel_anti_heis() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k4,
                         delta,
@@ -911,7 +926,7 @@ pub fn parallel_anti_heis_purity() {
                 let x0 = state_gen(Some(i));
 
                 for j in 0..num_inner_tries {
-                    let mut system = systems::sse::SSE::new(h, l, Some(num_inner_tries * i + j));
+                    let mut system = systems::sse::SSE::new(h, l, eta, Some(num_inner_tries * i + j));
 
                     let mut solver = StochasticSolver::new(&mut system, 0.0, x0, final_time, dt);
                     solver.integrate();
@@ -968,6 +983,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -1031,6 +1047,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         delta,
                         gamma,
@@ -1092,6 +1109,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k1,
                         delta,
@@ -1156,6 +1174,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k2,
                         delta,
@@ -1220,6 +1239,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k3,
                         delta,
@@ -1284,6 +1304,7 @@ pub fn parallel_anti_heis_purity() {
                         hc,
                         f0,
                         f1,
+                        eta,
                         y1,
                         k4,
                         delta,
@@ -1364,3 +1385,4 @@ pub fn parallel_anti_heis_purity() {
         .with_separator(b',')
         .finish(&mut df);
 }
+*/

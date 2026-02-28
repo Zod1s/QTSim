@@ -1,0 +1,6 @@
+
+(process:1162170): Gtk-WARNING **: 16:52:03.342: Theme parser error: gtk.css:1:1-31: Failed to import: Error opening file /home/lore/.config/gtk-4.0/libadwaita.css: No such file or directory
+
+(process:1162170): Gtk-WARNING **: 16:52:03.342: Theme parser error: gtk.css:2:1-38: Failed to import: Error opening file /home/lore/.config/gtk-4.0/libadwaita-tweaks.css: No such file or directory
+MESA-INTEL: warning: ../mesa-25.3.6/src/intel/vulkan/anv_formats.c:993: FINISHME: support more multi-planar formats with DRM modifiers
+MESA-INTEL: warning: ../mesa-25.3.6/src/intel/vulkan/anv_formats.c:959: FINISHME: support YUV colorspace with DRM format modifiers

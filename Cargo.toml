@@ -15,8 +15,6 @@ num_cpus = "1.16.0"
 thiserror = "2.0.12"
 plotpy = "1.13.0"
 statrs = "0.18.0"
-lapack = { version = "0.20", default-features = false }
-lapack-sys = "0.15.0"
 libc = "0.2"
 num-complex = "0.4.6"
 polars = { version = "0.51.0", features = ["lazy"] }

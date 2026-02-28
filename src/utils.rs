@@ -440,6 +440,7 @@ pub fn rouchonstep<D>(
     h: &Operator<D>,
     l: &Operator<D>,
     dw: f64,
+    eta: f64,
 ) -> State<D>
 where
     D: na::Dim + na::DimName + na::DimSub<na::U1> + std::marker::Copy,
@@ -447,12 +448,14 @@ where
 {
     let id = Operator::<D>::identity();
     let fst = (h * na::Complex::I + l.adjoint() * l.scale(0.5)).scale(dt);
-    let snd = l.scale(((l + l.adjoint()) * rho).trace().re * dt + dw);
-    let thd = (l * l).scale(dw.powi(2) - dt).scale(0.5);
+    let snd = l
+        .scale(((l + l.adjoint()) * rho).trace().re * dt * eta.sqrt() + dw)
+        .scale(eta.sqrt());
+    let thd = (l * l).scale(dw.powi(2) - dt).scale(0.5 * eta);
 
     let m = id - fst + snd + thd;
 
-    let num = &m * rho * m.adjoint();
+    let num = &m * rho * m.adjoint() + l * rho * l.adjoint().scale(dt * (1. - eta));
     num.scale(1. / num.trace().re) - rho
 }
 
