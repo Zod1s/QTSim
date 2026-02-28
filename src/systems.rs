@@ -10,5 +10,5 @@ pub mod multilevelcompletefeedback;
 // pub mod qubitwisemanssebase;
 pub mod sse;
 // pub mod timefeedback;
-// pub mod wisemanfme;
+pub mod wisemanfme;
 // pub mod wisemansse;

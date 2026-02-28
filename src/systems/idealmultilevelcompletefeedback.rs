@@ -101,6 +101,6 @@ where
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
     }
 }

@@ -12,16 +12,16 @@ use crate::utils::*;
 use rayon::prelude::*;
 use std::thread;
 
-const NUMJOBS: usize = 1;
-const NUMSIMS: usize = 7;
-const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
+// const NUMJOBS: usize = 1;
+// const NUMSIMS: usize = 7;
+// const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 
 fn main() -> utils::SolverResult<()> {
     // examples::actualfeed::actualfeed()
-    rayon::ThreadPoolBuilder::new()
-        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
-        .build_global()
-        .expect("Could not create threadpool");
+    // rayon::ThreadPoolBuilder::new()
+    //     .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+    //     .build_global()
+    //     .expect("Could not create threadpool");
 
     examples::parallel::parallel_3d();
 
@@ -46,7 +46,7 @@ fn main() -> utils::SolverResult<()> {
     // });
 
     // dataplots::plot("./anti_heis.csv", "parallel_anti_heis", true);
-    dataplots::plot("./3d4.csv", "parallel_3d4", true);
+    dataplots::plot("./3d3.csv", "parallel_3d3", true);
 
     // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
@@ -132,6 +132,8 @@ fn main() -> utils::SolverResult<()> {
     //         .map(|ac| ac.adjoint() * state * ac)
     //         .sum::<Operator<na::U2>>()
     // );
+
+    utils::clean_up_python();
 
     Ok(())
 }

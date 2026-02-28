@@ -27,7 +27,7 @@ pub fn parallel_3d() {
     let num_inner_tries = 5;
     let final_time: f64 = 30.0;
     let dt = 0.0001;
-    let eta = 0.6;
+    let eta = 0.3;
     let num_steps = ((final_time / dt).ceil()).to_usize().unwrap();
 
     let delta = 3.;

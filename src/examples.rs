@@ -3,7 +3,7 @@
 // pub mod idealfeed;
 // pub mod multilevel;
 // pub mod newfeedback;
-// pub mod output;
+pub mod output;
 pub mod parallel;
 // pub mod qnd;
 // pub mod timebased;

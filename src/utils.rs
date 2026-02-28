@@ -4,6 +4,7 @@ use rand::prelude::*;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use std::io::Error;
+use std::process::Command;
 use std::{
     num::ParseIntError,
     ops::{Add, Mul, Sub},
@@ -600,4 +601,12 @@ where
         .iter()
         .map(|proj| proj.adjoint() * state * proj)
         .sum::<State<na::Const<D2>>>()
+}
+
+#[inline(always)]
+pub fn clean_up_python() {
+    Command::new("rm")
+        .arg("*.py")
+        .output()
+        .expect("Could not remove python executables");
 }

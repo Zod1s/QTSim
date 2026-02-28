@@ -81,7 +81,11 @@ where
         std::marker::Copy,
 {
     fn system(&mut self, t: f64, dt: f64, rho: &State<D>, drho: &mut State<D>, dw: &Vec<f64>) {
-        let avg = if t > self.tf { self.y / t } else { 0. };
+        let avg = if t > self.tf {
+            self.y / (self.eta.sqrt() * t)
+        } else {
+            0.
+        };
 
         let corr = if avg <= self.lb {
             0.
@@ -112,7 +116,7 @@ where
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
     }
 }
 
@@ -201,7 +205,7 @@ where
 {
     fn system(&mut self, t: f64, dt: f64, rho: &State<D>, drho: &mut State<D>, dw: &Vec<f64>) {
         let avg = if t > self.tf {
-            self.y / (self.count as f64 * dt)
+            self.y / (self.count as f64 * dt * self.eta.sqrt())
         } else {
             0.
         };
@@ -240,6 +244,6 @@ where
     }
 
     fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
     }
 }
