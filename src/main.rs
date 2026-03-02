@@ -12,16 +12,15 @@ use crate::utils::*;
 use rayon::prelude::*;
 use std::thread;
 
-// const NUMJOBS: usize = 1;
-// const NUMSIMS: usize = 7;
-// const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
+const NUMJOBS: usize = 1;
+const NUMSIMS: usize = 7;
+const NUMTHREADS: usize = NUMJOBS * NUMSIMS;
 
 fn main() -> utils::SolverResult<()> {
-    // examples::actualfeed::actualfeed()
-    // rayon::ThreadPoolBuilder::new()
-    //     .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
-    //     .build_global()
-    //     .expect("Could not create threadpool");
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(NUMTHREADS.min(num_cpus::get()).max(1))
+        .build_global()
+        .expect("Could not create threadpool");
 
     examples::parallel::parallel_3d();
 
