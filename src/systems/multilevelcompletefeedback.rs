@@ -115,13 +115,13 @@ where
         *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
-    fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    fn measurement(&self, rho: &State<D>, dt: f64, dw: f64) -> f64 {
+        output(dt, rho, &self.l, dw, self.eta)
     }
 }
 
 #[derive(Debug)]
-/// New feedback with both F0 and F1 for multilevel systems, using the actual yt
+/// New feedback with both F0 and F1 for multilevel systems, using the actual yt, windowed
 pub struct Feedback2<D: na::Dim + na::DimName + Sized + std::marker::Copy>
 where
     na::DefaultAllocator: na::allocator::Allocator<D, D>,
@@ -243,7 +243,7 @@ where
         *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
-    fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    fn measurement(&self, rho: &State<D>, dt: f64, dw: f64) -> f64 {
+        output(dt, rho, &self.l, dw, self.eta)
     }
 }

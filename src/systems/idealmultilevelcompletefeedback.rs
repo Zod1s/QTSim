@@ -100,7 +100,7 @@ where
         *dw = self.wiener.sample_vector(dt, 1, &mut self.rng);
     }
 
-    fn measurement(&self, x: &State<D>, dt: f64, dw: f64) -> f64 {
-        self.eta.sqrt() * (self.l * x + x * self.l.adjoint()).trace().re * dt + dw
+    fn measurement(&self, rho: &State<D>, dt: f64, dw: f64) -> f64 {
+        output(dt, rho, &self.l, dw, self.eta)
     }
 }

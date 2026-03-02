@@ -408,17 +408,7 @@ where
     na::DefaultAllocator: na::allocator::Allocator<<D as na::DimSub<na::U1>>::Output>,
 {
     let rhosqrt = sqrthm(rho);
-    let fid = sqrthm(&(&rhosqrt * sigma * &rhosqrt)).trace().re.powi(2);
-    if fid.is_nan() {
-        panic!(
-            "No NaN fidelity, rho: {:.5}, sigma: {:.3}, rho eigs: {}, fidelity: {}",
-            rho,
-            sigma,
-            rho.symmetric_eigenvalues(),
-            fid
-        );
-    }
-    fid
+    sqrthm(&(&rhosqrt * sigma * &rhosqrt)).trace().re.powi(2)
 }
 
 pub fn fidelity_to_projector<D>(rho: &State<D>, sigma: &State<D>) -> f64
@@ -449,15 +439,21 @@ where
 {
     let id = Operator::<D>::identity();
     let fst = (h * na::Complex::I + l.adjoint() * l.scale(0.5)).scale(dt);
-    let snd = l
-        .scale(((l + l.adjoint()) * rho).trace().re * dt * eta.sqrt() + dw)
-        .scale(eta.sqrt());
+    let snd = l.scale(eta.sqrt() * (((l + l.adjoint()) * rho).trace().re * dt * eta.sqrt() + dw));
     let thd = (l * l).scale(dw.powi(2) - dt).scale(0.5 * eta);
 
     let m = id - fst + snd + thd;
 
     let num = &m * rho * m.adjoint() + l * rho * l.adjoint().scale(dt * (1. - eta));
     num.scale(1. / num.trace().re) - rho
+}
+
+pub fn output<D>(dt: f64, rho: &State<D>, l: &Operator<D>, dw: f64, eta: f64) -> f64
+where
+    D: na::Dim + na::DimName,
+    na::DefaultAllocator: na::allocator::Allocator<D, D>,
+{
+    eta.sqrt() * ((l + l.adjoint()) * rho).trace().re * dt + dw
 }
 
 pub fn veclindblad<D>(h: &Operator<D>, l: &Operator<D>) -> Operator<na::DimProd<D, D>>
@@ -585,7 +581,7 @@ where
 }
 
 #[inline(always)]
-pub fn partialtracequbit<const D1: usize, const D2: usize>(
+pub fn partialtrace<const D1: usize, const D2: usize>(
     state: &State<na::Const<D1>>,
     projectors: &[na::SMatrix<na::Complex<f64>, D1, D2>],
 ) -> State<na::Const<D2>>
@@ -605,8 +601,6 @@ where
 
 #[inline(always)]
 pub fn clean_up_python() {
-    Command::new("rm")
-        .arg("*.py")
-        .output()
-        .expect("Could not remove python executables");
+    Command::new("rm").arg("Images/*.log").output();
+    Command::new("rm").arg("Images/*.py").output();
 }

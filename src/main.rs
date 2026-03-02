@@ -46,7 +46,7 @@ fn main() -> utils::SolverResult<()> {
     // });
 
     // dataplots::plot("./anti_heis.csv", "parallel_anti_heis", true);
-    dataplots::plot("./3d3.csv", "parallel_3d3", true);
+    // dataplots::plot("./3d3.csv", "parallel_3d3", true);
 
     // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
