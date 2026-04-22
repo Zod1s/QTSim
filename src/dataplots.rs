@@ -1,6 +1,7 @@
 use crate::utils::*;
 use polars::prelude::*;
 use std::fs::File;
+use std::process::Command;
 
 pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
     let markerfreq = 15000;
@@ -14,7 +15,7 @@ pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
         .expect("Could not finish");
 
     let t_out = get_column(&df, "time");
-    let avg_free_fidelity = get_column(&df, "avg_free_fidelity");
+    let mut avg_free_fidelity = get_column(&df, "avg_free_fidelity");
     let avg_ideal_fidelity = get_column(&df, "avg_ideal_fidelity");
     let avg_ctrl_fidelity = get_column(&df, "avg_ctrl_fidelity");
     let avg_time_fidelity1 = get_column(&df, "avg_time_fidelity1");
@@ -120,10 +121,12 @@ pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
     //     .set_label(&format!("Windowed evolution, $k = {}$", 100000))
     //     .draw(&t_out, &avg_time_min_purity4);
 
+    avg_free_fidelity.sort_by(f64::total_cmp);
     plot.extra("plt.rcParams.update({\"text.usetex\": True, \"font.family\": \"Helvetica\"})\n")
         .extra("plt.rcParams['figure.constrained_layout.use'] = True\n")
         .set_figure_size_inches(7., 4.)
         .set_save_tight(true)
+        .set_yrange(avg_free_fidelity[0] * 0.9, 1.)
         // .add(&free_purity_curve)
         // .add(&ideal_purity_curve)
         // .add(&ctrl_purity_curve)
@@ -147,6 +150,7 @@ pub fn plot(path: &str, name: &str, show: bool) -> SolverResult<()> {
     } else {
         plot.save(&format!("./Images/{}.svg", name))?;
     }
+
     Ok(())
 }
 
