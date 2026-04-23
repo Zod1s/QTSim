@@ -23,7 +23,7 @@ fn main() -> utils::SolverResult<()> {
     //     .build_global()
     //     .expect("Could not create threadpool");
 
-    // examples::parallel::parallel_3d();
+    examples::parallel::parallel_3d();
 
     // let thread1 = thread::spawn(|| {
     //     examples::parallel::parallel_3d();
@@ -46,12 +46,12 @@ fn main() -> utils::SolverResult<()> {
     // });
 
     // dataplots::plot("./anti_heis.csv", "parallel_anti_heis", true);
-    dataplots::plot("./3d.csv", "parallel_3d", false);
-    dataplots::plot("./3d4.csv", "parallel_3d4", false);
-    dataplots::plot("./3d5.csv", "parallel_3d5", false);
-    dataplots::plot("./3d6.csv", "parallel_3d6", false);
-    dataplots::plot("./3d7.csv", "parallel_3d7", false);
-    dataplots::plot("./3d8.csv", "parallel_3d8", false);
+    // dataplots::plot("./3d.csv", "parallel_3d", false);
+    // dataplots::plot("./3d4.csv", "parallel_3d4", false);
+    // dataplots::plot("./3d5.csv", "parallel_3d5", false);
+    // dataplots::plot("./3d6.csv", "parallel_3d6", false);
+    // dataplots::plot("./3d7.csv", "parallel_3d7", false);
+    // dataplots::plot("./3d8.csv", "parallel_3d8", false);
 
     // let vectors: Vec<na::Vector2<na::Complex<f64>>> = vec![na::Vector2::x(), na::Vector2::y()];
     // let id = na::Matrix2::<na::Complex<f64>>::identity();
