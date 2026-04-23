@@ -23,7 +23,7 @@ pub fn parallel_3d() {
 
     let state_gen = random_pure_state::<na::U3>;
 
-    let num_tries = 100;
+    let num_tries = 1000;
     let num_inner_tries = 20;
     let final_time: f64 = 60.0;
     let dt = 0.0001;
@@ -263,7 +263,7 @@ pub fn parallel_3d() {
         .collect::<Vec<f64>>();
 
     println!("Saving to file");
-    let mut file = File::create("./3d9.csv").expect("Could not create file");
+    let mut file = File::create("./3d10.csv").expect("Could not create file");
 
     let mut df: DataFrame = df!(
         "time" => t_out,
