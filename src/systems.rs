@@ -1,6 +1,6 @@
-pub mod idealmultilevelcompletefeedback;
+// pub mod idealmultilevelcompletefeedback;
 // pub mod idealqubitcompletefeedback;
-pub mod multilevelcompletefeedback;
+// pub mod multilevelcompletefeedback;
 // pub mod qubitcompletefeedback;
 // pub mod qubitnonphysical;
 // pub mod qubitnonphysicalrouchon;
@@ -8,7 +8,8 @@ pub mod multilevelcompletefeedback;
 // pub mod qubitwisemanfme;
 // pub mod qubitwisemansse;
 // pub mod qubitwisemanssebase;
+pub mod linsse;
 pub mod sse;
 // pub mod timefeedback;
-pub mod wisemanfme;
+// pub mod wisemanfme;
 // pub mod wisemansse;
